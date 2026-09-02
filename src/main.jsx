@@ -1,6 +1,16 @@
 import { useMemo, useState } from 'react';
 import { createRoot } from 'react-dom/client';
 import './styles.css';
+import { grantApi } from './api';
+
+const apiSchemeIds = { 'pm-kisan': 1, solar: 2, digital: 3, education: 4, housing: 5 };
+const criteriaRules = {
+  'pm-kisan': { limit: 200000, categories: ['All'], docs: ['Land Ownership Certificate', 'Aadhaar Card', 'Bank Passbook'] },
+  solar: { limit: 800000, categories: ['All'], docs: ['Electricity Bill', 'Property Proof', 'Roof Layout Plan'] },
+  digital: { limit: 500000, categories: ['All'], docs: ['Udyam MSME Registration', 'Business PAN', 'Bank Statements'] },
+  education: { limit: 450000, categories: ['OBC', 'SC', 'ST', 'Minorities'], docs: ['12th Marksheet', 'Income Certificate', 'College Admission Proof'] },
+  housing: { limit: 180000, categories: ['SC', 'ST', 'BPL'], docs: ['Ration Card', 'BPL Certificate', 'Site Photograph'] },
+};
 
 const schemes = [
   { id: 'pm-kisan', icon: '🌾', category: 'Agriculture', title: 'PM Farmer Income Support Scheme', short: 'PM-KISAN', amount: '₹6,000 / year', desc: 'Direct annual income support for small and marginal landholder farmers.', eligibility: ['Small or marginal landholder', 'Valid Aadhaar & bank account'], color: 'green' },
@@ -20,17 +30,27 @@ function App() {
   const [menuOpen, setMenuOpen] = useState(false);
   const [applications, setApplications] = useState([{ schemeId: 'pm-kisan', stage: 2, applied: '12 Aug 2026', ref: 'DSG-2026-0812-409' }]);
   const [notice, setNotice] = useState('');
+  const [criteria, setCriteria] = useState(null);
   const applied = id => applications.find(a => a.schemeId === id);
   const activeApplication = useMemo(() => applications[0], [applications]);
 
   const demo = () => { setProfile(demoProfile); setLogin('9876543210'); setScreen('dashboard'); };
   const saveProfile = e => { e.preventDefault(); setScreen('dashboard'); setNotice('Your beneficiary profile has been saved.'); };
-  const apply = schemeId => {
+  const apply = async schemeId => {
     if (applied(schemeId)) { setScreen('tracking'); return; }
-    setApplications([{ schemeId, stage: 0, applied: '01 Sep 2026', ref: `DSG-2026-0901-${Math.floor(100 + Math.random() * 900)}` }, ...applications]);
-    setNotice('Application submitted successfully. You can track its progress below.');
-    setScreen('tracking');
+    const scheme = schemes.find(s => s.id === schemeId); const rule = criteriaRules[schemeId];
+    const local = { incomeEligible: Number(profile.income || 0) <= rule.limit, categoryEligible: rule.categories.includes('All') || rule.categories.includes(profile.category), maxIncomeLimit: rule.limit, allowedCategories: rule.categories, requiredDocuments: rule.docs, missingDocuments: [] };
+    local.eligible = local.incomeEligible && local.categoryEligible; local.message = local.eligible ? 'You meet the scheme profile criteria.' : 'Your current profile does not meet the scheme criteria.';
+    try { setCriteria({ scheme, result: await grantApi.validateCriteria(apiSchemeIds[schemeId], profile.id || 1, rule.docs) }); } catch { setCriteria({ scheme, result: local }); }
   };
+  const checkCriteria = async scheme => {
+    const rule = criteriaRules[scheme.id];
+    const local = { incomeEligible: Number(profile.income || 0) <= rule.limit, categoryEligible: rule.categories.includes('All') || rule.categories.includes(profile.category), maxIncomeLimit: rule.limit, allowedCategories: rule.categories, requiredDocuments: rule.docs, missingDocuments: [], message: 'You meet the scheme profile criteria.' };
+    local.eligible = local.incomeEligible && local.categoryEligible;
+    try { setCriteria({ scheme, result: await grantApi.validateCriteria(apiSchemeIds[scheme.id], profile.id || 1, rule.docs) }); }
+    catch { setCriteria({ scheme, result: local }); }
+  };
+  const confirmApplication = async () => { const scheme = criteria.scheme; const rule = criteriaRules[scheme.id]; try { await grantApi.submitApplication(profile.id || 1, apiSchemeIds[scheme.id], rule.docs); } catch {} setCriteria(null); setApplications([{ schemeId: scheme.id, stage: 0, applied: '01 Sep 2026', ref: `DSG-2026-0901-${Math.floor(100 + Math.random() * 900)}` }, ...applications]); setNotice('Application submitted successfully. You can track its progress below.'); setScreen('tracking'); };
 
   if (screen === 'login') return <Login login={login} setLogin={setLogin} demo={demo} enter={() => { setProfile(p => ({ ...p, mobile: login })); setScreen('profile'); }} />;
   const app = activeApplication;
@@ -41,9 +61,10 @@ function App() {
       <Topbar profile={profile} setMenuOpen={setMenuOpen} />
       {notice && <div className="notice"><span>✓</span>{notice}<button onClick={() => setNotice('')}>×</button></div>}
       {screen === 'profile' && <Profile profile={profile} setProfile={setProfile} saveProfile={saveProfile} />}
-      {screen === 'dashboard' && <Dashboard profile={profile} schemes={schemes} applications={applications} apply={apply} setScreen={setScreen} />}
-      {screen === 'schemes' && <Schemes schemes={schemes} applications={applications} apply={apply} />}
+      {screen === 'dashboard' && <Dashboard profile={profile} schemes={schemes} applications={applications} apply={apply} checkCriteria={checkCriteria} setScreen={setScreen} />}
+      {screen === 'schemes' && <Schemes schemes={schemes} applications={applications} apply={apply} checkCriteria={checkCriteria} />}
       {screen === 'tracking' && <Tracking app={app} scheme={appScheme} setScreen={setScreen} />}
+      {criteria && <CriteriaModal scheme={criteria.scheme} result={criteria.result} close={() => setCriteria(null)} confirm={confirmApplication} />}
     </main>
   </div>;
 }
@@ -62,5 +83,7 @@ function Schemes({ schemes, applications, apply }) { return <section className="
 function SchemeCard({ scheme, applied, apply }) { return <article className={`scheme-card ${scheme.color}`}><div className="scheme-top"><span className="scheme-icon">{scheme.icon}</span><span className="category">{scheme.category}</span></div><h3>{scheme.title}</h3><p>{scheme.desc}</p><div className="grant"><small>BENEFIT AMOUNT</small><b>{scheme.amount}</b></div><div className="eligibility"><small>ELIGIBILITY</small>{scheme.eligibility.map(x => <span key={x}>✓ {x}</span>)}</div><button className={applied ? 'applied-button' : 'primary full'} onClick={() => apply(scheme.id)}>{applied ? 'View application →' : <>Apply now <span>→</span></>}</button></article> }
 function Progress({ stage, compact }) { const steps = ['Application submitted','Field check','District approval','Funds disbursed']; return <div className={`progress ${compact ? 'compact' : ''}`}>{steps.map((step, i) => <div className="progress-step" key={step}><span className={i <= stage ? 'done' : ''}>{i < stage ? '✓' : i + 1}</span><p>{step}</p>{i < 3 && <i className={i < stage ? 'line done-line' : 'line'} />}</div>)}</div> }
 function Tracking({ app, scheme, setScreen }) { if (!app) return <section className="page empty"><h1>No applications yet</h1><button className="primary" onClick={() => setScreen('schemes')}>Explore schemes</button></section>; const stages = [{name:'Stage 1 · Registration benefit',amount:'₹1,800',date:'Credited 14 Aug 2026',status:'Released',done:true},{name:'Stage 2 · Verification clearance',amount:'₹2,400',date:'Expected 25 Sep 2026',status:'Awaiting field check'},{name:'Stage 3 · Final approval',amount:'₹1,800',date:'Expected 15 Oct 2026',status:'Pending district approval'}]; return <section className="page tracking-page"><PageTitle eyebrow="APPLICATION TRACKING" title={<><b>{scheme.short}</b> application</>} desc={`Reference no. ${app.ref} · Submitted on ${app.applied}`} /><div className="tracking-hero"><div><span className="scheme-icon">{scheme.icon}</span><div><span className="eyebrow">CURRENT STATUS</span><h2>Field verification in progress</h2><p>Your application is with the local field officer for document and eligibility verification.</p></div></div><span className="pill amber">● In progress</span></div><div className="panel progress-panel"><h3>Application progress</h3><Progress stage={app.stage} /><div className="next-step"><span>⌁</span><div><b>What happens next?</b><p>After field verification, your application will be sent to the District Officer for approval.</p></div></div></div><div className="section-head fund-head"><div><span className="eyebrow">STAGED FUND RELEASE</span><h2>Grant disbursement plan</h2><p>Funds are released in stages as your application moves forward.</p></div><div className="amount-box"><small>TOTAL APPROVED BENEFIT</small><b>{scheme.amount}</b></div></div><div className="release-list">{stages.map((s, i) => <div className="release" key={s.name}><div className={`release-dot ${s.done ? 'released' : ''}`}>{s.done ? '✓' : i + 1}</div><div className="release-main"><span>{s.name}</span><b>{s.amount} <small>({[30,40,30][i]}%)</small></b></div><div className="release-date"><b>{s.date}</b><span className={s.done ? 'pill green-pill' : 'pill gray'}>{s.status}</span></div></div>)}</div></section> }
+
+function CriteriaModal({ scheme, result, close, confirm }) { return <div className="modal-backdrop" role="dialog" aria-modal="true"><div className="criteria-modal"><button className="modal-close" onClick={close}>x</button><div className="criteria-title"><span className="scheme-icon">{scheme.icon}</span><div><span className="eyebrow">SCHEME CRITERIA CHECK</span><h2>{scheme.short}</h2></div></div><div className={result.eligible ? 'eligibility-result yes' : 'eligibility-result no'}><b>{result.eligible ? 'Eligible to apply' : 'Profile criteria not met'}</b><p>{result.message}</p></div><div className="criteria-check"><span>Annual family income</span><b>{result.incomeEligible ? 'Within limit' : 'Above limit'}</b><small>Maximum permitted: Rs. {Number(result.maxIncomeLimit).toLocaleString('en-IN')}</small></div><div className="criteria-check"><span>Social category</span><b>{result.categoryEligible ? 'Accepted' : 'Not accepted'}</b><small>Eligible categories: {result.allowedCategories.join(', ')}</small></div><div className="document-list"><span>REQUIRED DOCUMENT CHECKLIST</span>{result.requiredDocuments.map(doc => <label key={doc}><input type="checkbox" defaultChecked /> <b>{doc}</b><small>Ready for upload</small></label>)}</div>{result.eligible ? <button className="primary full" onClick={confirm}>Confirm and submit application <span>-&gt;</span></button> : <button className="outline full" onClick={close}>Review my profile</button>}</div></div> }
 
 createRoot(document.getElementById('root')).render(<App />);
