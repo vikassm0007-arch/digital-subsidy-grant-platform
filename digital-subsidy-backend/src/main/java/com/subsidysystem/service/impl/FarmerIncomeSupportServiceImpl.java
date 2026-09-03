@@ -6,51 +6,55 @@ import com.subsidysystem.entity.Scheme;
 import com.subsidysystem.service.SchemeService;
 import org.springframework.stereotype.Service;
 
+import java.math.BigDecimal;
 import java.time.LocalDate;
 import java.time.Period;
 
 @Service("farmerService")
 public class FarmerIncomeSupportServiceImpl implements SchemeService {
 
-
-
     @Override
     public EligibilityResult evaluateEligibility(Beneficiary beneficiary, Scheme scheme) {
 
-        int totalCriteria = 5; // Updated to include land holding criteria
+        int totalCriteria = 5;
         int passedCriteria = 0;
         StringBuilder remarks = new StringBuilder();
 
         // 1. Age Verification
+        int minAge = scheme.getMinAge() != null ? scheme.getMinAge() : 18;
+        int maxAge = scheme.getMaxAge() != null ? scheme.getMaxAge() : 70;
         int age = Period.between(beneficiary.getDateOfBirth(), LocalDate.now()).getYears();
-        if (age >= scheme.getMinAge() && age <= scheme.getMaxAge()) {
+        if (age >= minAge && age <= maxAge) {
             passedCriteria++;
         } else {
-            remarks.append(String.format("Age %d out of valid range [%d-%d]. ", age, scheme.getMinAge(), scheme.getMaxAge()));
+            remarks.append(String.format("Age %d out of valid range [%d-%d]. ", age, minAge, maxAge));
         }
 
         // 2. Income Verification
-        if (beneficiary.getAnnualIncome() <= scheme.getMaxAnnualIncome()) {
+        BigDecimal maxIncome = scheme.getMaxIncomeLimit() != null ? scheme.getMaxIncomeLimit() : BigDecimal.valueOf(1000000);
+        BigDecimal beneficiaryIncome = BigDecimal.valueOf(beneficiary.getAnnualIncome());
+        if (beneficiaryIncome.compareTo(maxIncome) <= 0) {
             passedCriteria++;
         } else {
-            remarks.append(String.format("Annual income %.2f exceeds limit %.2f. ", beneficiary.getAnnualIncome(), scheme.getMaxAnnualIncome()));
+            remarks.append(String.format("Annual income %.2f exceeds limit %.2f. ", beneficiary.getAnnualIncome(), maxIncome.doubleValue()));
         }
 
         // 3. Category Match
-        if (beneficiary.getCategory().equalsIgnoreCase(scheme.getTargetCategory())) {
+        String eligibleCategories = scheme.getEligibleCategories() != null ? scheme.getEligibleCategories() : "ALL";
+        if (eligibleCategories.equalsIgnoreCase("ALL") || eligibleCategories.toLowerCase().contains(beneficiary.getCategory().toLowerCase())) {
             passedCriteria++;
         } else {
-            remarks.append(String.format("Category '%s' does not match target '%s'. ", beneficiary.getCategory(), scheme.getTargetCategory()));
+            remarks.append(String.format("Category '%s' does not match eligible '%s'. ", beneficiary.getCategory(), eligibleCategories));
         }
 
-        //
-        if (!scheme.isRequiresStateResidency() || Boolean.TRUE.equals(beneficiary.getIsStateResident())) {
+        // 4. State Residency
+        if (Boolean.TRUE.equals(beneficiary.getIsStateResident())) {
             passedCriteria++;
         } else {
             remarks.append("State residency requirement not met. ");
         }
 
-        //
+        // 5. Land Holding Check
         if (beneficiary.getLandHoldingInAcres() > 0.0 && beneficiary.getLandHoldingInAcres() <= 5.0) {
             passedCriteria++;
         } else {
@@ -65,7 +69,5 @@ public class FarmerIncomeSupportServiceImpl implements SchemeService {
         }
 
         return new EligibilityResult(isEligible, score, remarks.toString().trim());
-
-
     }
 }
