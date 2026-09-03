@@ -66,16 +66,16 @@ public class FarmerIncomeSupportController {
                 .orElseThrow(() ->
                         new RuntimeException("Scheme not found"));
 
+        existingScheme.setSchemeCode(updatedScheme.getSchemeCode());
         existingScheme.setSchemeName(updatedScheme.getSchemeName());
-        existingScheme.setTargetCategory(updatedScheme.getTargetCategory());
+        existingScheme.setCategory(updatedScheme.getCategory());
+        existingScheme.setGrantAmount(updatedScheme.getGrantAmount());
+        existingScheme.setMaxIncomeLimit(updatedScheme.getMaxIncomeLimit());
+        existingScheme.setEligibleCategories(updatedScheme.getEligibleCategories());
         existingScheme.setMinAge(updatedScheme.getMinAge());
         existingScheme.setMaxAge(updatedScheme.getMaxAge());
-        existingScheme.setMaxAnnualIncome(
-                updatedScheme.getMaxAnnualIncome()
-        );
-        existingScheme.setRequiresStateResidency(
-                updatedScheme.isRequiresStateResidency()
-        );
+        existingScheme.setRequiredDocuments(updatedScheme.getRequiredDocuments());
+        existingScheme.setDescription(updatedScheme.getDescription());
 
         Scheme savedScheme =
                 schemeRepository.save(existingScheme);
