@@ -64,6 +64,7 @@ function App() {
   const [profile, setProfile] = useState(blankProfile);
   const [login, setLogin] = useState('');
   const [menuOpen, setMenuOpen] = useState(false);
+  const [chatOpen, setChatOpen] = useState(false);
   const [applications, setApplications] = useState([{ schemeId: 'sch-001', stage: 2, applied: '12 Aug 2026', ref: 'DSG-2026-0812-409' }]);
   const [notice, setNotice] = useState('');
   const [criteria, setCriteria] = useState(null);
@@ -139,29 +140,41 @@ function App() {
   const app = activeApplication;
   const appScheme = schemes.find(s => s.id === app?.schemeId) || schemes[0];
   return <div className="app-shell">
-    <Sidebar screen={screen} setScreen={setScreen} menuOpen={menuOpen} setMenuOpen={setMenuOpen} />
+    <Sidebar screen={screen} setScreen={setScreen} menuOpen={menuOpen} setMenuOpen={setMenuOpen} openChat={() => setChatOpen(true)} />
     <main className="main-content">
       <Topbar profile={profile} setMenuOpen={setMenuOpen} />
       {notice && <div className="notice"><span>✓</span>{notice}<button onClick={() => setNotice('')}>×</button></div>}
       {screen === 'profile' && <Profile profile={profile} setProfile={setProfile} saveProfile={saveProfile} />}
-      {screen === 'dashboard' && <Dashboard profile={profile} schemes={schemes} applications={applications} apply={apply} checkCriteria={checkCriteria} setScreen={setScreen} />}
+      {screen === 'dashboard' && <Dashboard profile={profile} schemes={schemes} applications={applications} apply={apply} checkCriteria={checkCriteria} setScreen={setScreen} openChat={() => setChatOpen(true)} />}
       {screen === 'schemes' && <Schemes schemes={schemes} applications={applications} apply={apply} checkCriteria={checkCriteria} />}
       {screen === 'tracking' && <Tracking app={app} scheme={appScheme} setScreen={setScreen} />}
       {criteria && <CriteriaModal scheme={criteria.scheme} result={criteria.result} close={() => setCriteria(null)} confirm={confirmApplication} />}
+      <Chatbot profile={profile} schemes={schemes} applications={applications} open={chatOpen} setOpen={setChatOpen} />
     </main>
   </div>;
 }
 
 function Login({ login, setLogin, demo, enter }) { return <div className="login-page"><div className="login-art"><div className="brand light"><span className="brand-mark">✦</span><span>JanSetu <em>beneficiary portal</em></span></div><div className="art-copy"><span className="eyebrow">DIGITAL SUBSIDY & GRANT PLATFORM</span><h1>Every benefit.<br /><i>Closer to home.</i></h1><p>A simpler way to discover, apply for, and track government support built around you.</p></div><div className="art-stats"><div><b>50</b><span>Active schemes</span></div><div><b>100%</b><span>Transparent tracking</span></div></div></div><section className="login-panel"><div className="login-form"><div className="brand mobile-brand"><span className="brand-mark">✦</span>JanSetu</div><div><span className="eyebrow">WELCOME TO JANSETU</span><h2>Sign in to your<br />beneficiary account</h2><p className="muted">Use your mobile number or Aadhaar / Citizen ID to continue.</p></div><label>Mobile number or Aadhaar / Citizen ID<input value={login} onChange={e => setLogin(e.target.value)} placeholder="Enter your ID" /></label><button className="primary full" onClick={enter}>Continue <span>→</span></button><button className="otp">▣ &nbsp; Sign in with OTP instead</button><div className="divider"><span>OR</span></div><button className="demo" onClick={demo}><span className="demo-icon">✦</span><span><b>Try Quick Demo</b><small>Explore with a pre-filled beneficiary profile</small></span><b>→</b></button><p className="secure">⌑ &nbsp; Your information is protected and secure</p></div></section></div> }
 
-function Sidebar({ screen, setScreen, menuOpen, setMenuOpen }) { const items = [['dashboard','▦','Overview'],['schemes','◈','Explore schemes'],['tracking','⌁','Application tracking'],['profile','♙','My profile']]; return <aside className={menuOpen ? 'sidebar open' : 'sidebar'}><div className="brand"><span className="brand-mark">✦</span><span>JanSetu <em>beneficiary portal</em></span><button className="close" onClick={() => setMenuOpen(false)}>×</button></div><nav>{items.map(([key, icon, label]) => <button key={key} className={screen === key ? 'active' : ''} onClick={() => { setScreen(key); setMenuOpen(false); }}><i>{icon}</i>{label}</button>)}</nav><div className="sidebar-foot"><div className="help">?<span>Need help?<small>Contact support</small></span></div><button className="signout" onClick={() => location.reload()}>↪ Sign out</button></div></aside> }
+function Sidebar({ screen, setScreen, menuOpen, setMenuOpen, openChat }) { 
+  const items = [['dashboard','▦','Overview'],['schemes','◈','Explore schemes'],['tracking','⌁','Application tracking'],['profile','♙','My profile']]; 
+  return <aside className={menuOpen ? 'sidebar open' : 'sidebar'}>
+    <div className="brand"><span className="brand-mark">✦</span><span>JanSetu <em>beneficiary portal</em></span><button className="close" onClick={() => setMenuOpen(false)}>×</button></div>
+    <nav>{items.map(([key, icon, label]) => <button key={key} className={screen === key ? 'active' : ''} onClick={() => { setScreen(key); setMenuOpen(false); }}><i>{icon}</i>{label}</button>)}</nav>
+    <div className="sidebar-foot">
+      <div className="help" style={{ cursor: 'pointer' }} onClick={openChat}>?<span>Need help?<small>Contact AI support 💬</small></span></div>
+      <button className="signout" onClick={() => location.reload()}>↪ Sign out</button>
+    </div>
+  </aside>;
+}
+
 function Topbar({ profile, setMenuOpen }) { return <header className="topbar"><button className="hamburger" onClick={() => setMenuOpen(true)}>☰</button><div className="breadcrumb">BENEFICIARY PORTAL <span>/</span> HOME</div><div className="top-user"><span className="bell">♧<i></i></span><span className="avatar">{(profile.name || 'B').slice(0,1)}</span><span><b>{profile.name || 'Beneficiary'}</b><small>Verified beneficiary</small></span></div></header> }
 
 function Profile({ profile, setProfile, saveProfile }) { const update = (key, value) => setProfile({ ...profile, [key]: value }); const groups = [{title:'Personal details', desc:'Tell us a little about yourself.', fields:[['name','Full name','text'],['dob','Date of birth','date'],['gender','Gender','select'],['mobile','Mobile number','tel'],['aadhaar','Aadhaar ID number','text']]},{title:'Category & eligibility', desc:'This helps us find support that fits you.', fields:[['category','Social category','select'],['income','Annual family income (₹)','number'],['employment','Employment status','select']]},{title:'Location & bank details', desc:'Used to verify your eligibility and deliver benefits.', fields:[['state','State','select'],['district','District','text'],['village','Village / Town','text'],['bank','Bank account number','text'],['ifsc','IFSC code','text']]}]; return <section className="page profile-page"><PageTitle eyebrow="YOUR ACCOUNT" title={<>Complete your <b>profile</b></>} desc="A complete profile helps us show you the right schemes and enables direct benefit transfers." /><form onSubmit={saveProfile}>{groups.map(g => <div className="form-card" key={g.title}><div className="form-heading"><h3>{g.title}</h3><p>{g.desc}</p></div><div className="fields">{g.fields.map(([key,label,type]) => <label key={key}>{label}{type === 'select' ? <select value={profile[key]} onChange={e => update(key,e.target.value)} required><option value="">Select {label.toLowerCase()}</option>{options(key).map(v => <option key={v}>{v}</option>)}</select> : <input type={type} value={profile[key]} onChange={e => update(key,e.target.value)} placeholder={label} required={['name','mobile','state'].includes(key)} />}</label>)}</div></div>)}<div className="form-actions"><span>⌑ Your data is securely encrypted</span><button className="primary">Save profile & continue <b>→</b></button></div></form></section> }
 function options(key) { return key === 'gender' ? ['Female','Male','Non-binary','Prefer not to say'] : key === 'category' ? ['General','OBC','SC','ST','Minorities'] : key === 'employment' ? ['Farmer','Self-employed','Employed','Student','Unemployed'] : ['Andhra Pradesh','Karnataka','Maharashtra','Tamil Nadu','Uttar Pradesh']; }
 function PageTitle({ eyebrow, title, desc, action }) { return <div className="page-title"><div><span className="eyebrow">{eyebrow}</span><h1>{title}</h1><p>{desc}</p></div>{action}</div> }
 
-function Dashboard({ profile, schemes, applications, apply, checkCriteria, setScreen }) { 
+function Dashboard({ profile, schemes, applications, apply, checkCriteria, setScreen, openChat }) { 
   const latest = applications[0]; 
   const scheme = schemes.find(s => s.id === latest.schemeId) || schemes[0]; 
   return <section className="page">
@@ -183,8 +196,8 @@ function Dashboard({ profile, schemes, applications, apply, checkCriteria, setSc
       <div className="panel support-panel">
         <span className="support-emoji">💬</span>
         <h3>Need a hand?</h3>
-        <p>Our beneficiary support team is here to help with any question.</p>
-        <button className="text-button">Get support →</button>
+        <p>Our JanSetu AI support assistant is here to help 24/7 with any scheme question.</p>
+        <button className="text-button" onClick={openChat}>Ask AI Chatbot →</button>
       </div>
     </div>
     <section className="scheme-section">
@@ -324,7 +337,7 @@ function CriteriaModal({ scheme, result, close, confirm }) {
       <button className="modal-close" onClick={close}>x</button>
       <div className="criteria-title">
         <span className="scheme-icon">{scheme.icon}</span>
-        <div><span className="eyebrow">SCHEME CRITERIA CHECK</span>2<h2>{scheme.short}</h2></div>
+        <div><span className="eyebrow">SCHEME CRITERIA CHECK</span><h2>{scheme.short}</h2></div>
       </div>
       <div className={result.eligible ? 'eligibility-result yes' : 'eligibility-result no'}>
         <b>{result.eligible ? 'Eligible to apply' : 'Profile criteria not met'}</b>
@@ -347,6 +360,119 @@ function CriteriaModal({ scheme, result, close, confirm }) {
       {result.eligible ? <button className="primary full" onClick={confirm}>Confirm and submit application <span>-&gt;</span></button> : <button className="outline full" onClick={close}>Review my profile</button>}
     </div>
   </div>; 
+}
+
+function Chatbot({ profile, schemes, applications, open, setOpen }) {
+  const [messages, setMessages] = useState([
+    { sender: 'bot', text: `Namaste ${profile.name ? profile.name.split(' ')[0] : 'Beneficiary'}! 👋 I am JanSetu AI Assistant. How can I help you today with government subsidy schemes, eligibility checks, required documents, or application tracking?` }
+  ]);
+  const [input, setInput] = useState('');
+
+  const replyUser = (userMsg) => {
+    if (!userMsg.trim()) return;
+    const newMsgs = [...messages, { sender: 'user', text: userMsg }];
+    setMessages(newMsgs);
+    setInput('');
+
+    setTimeout(() => {
+      let botText = getBotResponse(userMsg, profile, schemes, applications);
+      setMessages(prev => [...prev, { sender: 'bot', text: botText }]);
+    }, 350);
+  };
+
+  if (!open) {
+    return (
+      <button className="chatbot-fab" onClick={() => setOpen(true)}>
+        <span>💬</span>
+        <span>JanSetu AI Support</span>
+        <span className="chatbot-fab-badge">24/7 AI</span>
+      </button>
+    );
+  }
+
+  return (
+    <div className="chatbot-window">
+      <div className="chatbot-header">
+        <div className="chatbot-header-info">
+          <div className="chatbot-avatar">✦</div>
+          <div className="chatbot-title">
+            <h4>JanSetu AI Assistant</h4>
+            <p>● Active & Online 24/7</p>
+          </div>
+        </div>
+        <button className="chatbot-close" onClick={() => setOpen(false)}>×</button>
+      </div>
+
+      <div className="chatbot-messages">
+        {messages.map((m, i) => (
+          <div key={i} className={`chat-msg ${m.sender}`}>
+            {m.text}
+          </div>
+        ))}
+      </div>
+
+      <div className="chat-chips">
+        <button className="chat-chip" onClick={() => replyUser('How do I apply for PM-KISAN?')}>🌾 PM-KISAN</button>
+        <button className="chat-chip" onClick={() => replyUser('Check my solar scheme eligibility')}>☀️ Solar Rooftop</button>
+        <button className="chat-chip" onClick={() => replyUser('What documents do I need for housing grant?')}>🏠 Housing Docs</button>
+        <button className="chat-chip" onClick={() => replyUser('Track my active application status')}>⌁ Track Status</button>
+      </div>
+
+      <div className="chatbot-input-area">
+        <input 
+          type="text" 
+          placeholder="Ask AI about 50 schemes or eligibility..." 
+          value={input} 
+          onChange={e => setInput(e.target.value)} 
+          onKeyDown={e => e.key === 'Enter' && replyUser(input)}
+        />
+        <button className="chatbot-send" onClick={() => replyUser(input)}>Send</button>
+      </div>
+    </div>
+  );
+}
+
+function getBotResponse(query, profile, schemes, applications) {
+  const q = query.toLowerCase();
+  
+  if (q.includes('pm-kisan') || q.includes('farmer') || q.includes('kisan')) {
+    const kisan = schemes.find(s => s.short.includes('KISAN')) || schemes[0];
+    return `🌾 ${kisan.title}: Provides ${kisan.amount}.\n\nEligibility: ${kisan.eligibility.join(', ')}.\nRequired Docs: ${kisan.docs.join(', ')}.`;
+  }
+  
+  if (q.includes('solar') || q.includes('electricity') || q.includes('surya')) {
+    const solar = schemes.find(s => s.title.toLowerCase().includes('solar')) || schemes[1];
+    return `☀️ ${solar.title}: Benefit amount is ${solar.amount}.\n\nDocs required: ${solar.docs.join(', ')}.`;
+  }
+  
+  if (q.includes('housing') || q.includes('pmay') || q.includes('house')) {
+    const housing = schemes.find(s => s.category.toLowerCase() === 'housing') || schemes[2];
+    return `🏠 ${housing.title}: Offers ${housing.amount}.\n\nRequired Documents: ${housing.docs.join(', ')}. Max permitted income limit is ₹${(housing.limit || 600000).toLocaleString('en-IN')}.`;
+  }
+
+  if (q.includes('track') || q.includes('status') || q.includes('application')) {
+    if (applications.length === 0) return "You have no active applications currently. Visit 'Explore schemes' to apply!";
+    const latest = applications[0];
+    const s = schemes.find(x => x.id === latest.schemeId) || schemes[0];
+    return `⌁ Active Application Status: Your application for ${s.title} (Ref: ${latest.ref}) is currently in Stage ${latest.stage + 1} (Field Verification).`;
+  }
+
+  if (q.includes('document') || q.includes('doc') || q.includes('aadhaar')) {
+    return "📄 Most Indian subsidy schemes require: 1) Aadhaar Card, 2) Income Certificate, 3) Bank Passbook with IFSC, and 4) Ration Card or Category Certificate.";
+  }
+
+  if (q.includes('profile') || q.includes('eligibility')) {
+    const category = profile.category || 'OBC';
+    const income = profile.income ? `₹${Number(profile.income).toLocaleString('en-IN')}` : 'Not set';
+    return `👤 Your Profile Summary: Category: ${category}, Annual Income: ${income}. Based on your profile, you are eligible for up to 42 out of 50 schemes!`;
+  }
+
+  const matched = schemes.find(s => s.title.toLowerCase().includes(q) || s.category.toLowerCase().includes(q) || s.short.toLowerCase().includes(q));
+  if (matched) {
+    return `✦ ${matched.title} (${matched.category}): Grants ${matched.amount}.\n\n${matched.desc}\nRequired Docs: ${matched.docs.join(', ')}.`;
+  }
+
+  return `✦ JanSetu AI Assistant: I can answer questions on all 50 government schemes (Agriculture, Housing, Solar, Education, MSME, Women Welfare, EV, etc.), required document checklists, or application status! Try asking: "What schemes are for farmers?" or "Docs for Mudra loan".`;
 }
 
 createRoot(document.getElementById('root')).render(<App />);
