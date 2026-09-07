@@ -228,7 +228,59 @@ function App() {
   );
 }
 
-function Login({ login, setLogin, demo, setPortalMode, enter }) { return <div className="login-page"><div className="login-art"><div className="brand light"><span className="brand-mark">✦</span><span>JanSetu <em>beneficiary portal</em></span></div><div className="art-copy"><span className="eyebrow">DIGITAL SUBSIDY & GRANT PLATFORM</span><h1>Every benefit.<br /><i>Closer to home.</i></h1><p>A simpler way to discover, apply for, and track government support built around you.</p></div><div className="art-stats"><div><b>50</b><span>Active schemes</span></div><div><b>100%</b><span>Transparent tracking</span></div></div></div><section className="login-panel"><div className="login-form"><div className="brand mobile-brand"><span className="brand-mark">✦</span>JanSetu</div><div><span className="eyebrow">WELCOME TO JANSETU</span><h2>Sign in to your<br />beneficiary account</h2><p className="muted">Use your mobile number or Aadhaar / Citizen ID to continue.</p></div><label>Mobile number or Aadhaar / Citizen ID<input value={login} onChange={e => setLogin(e.target.value)} placeholder="Enter your ID" /></label><button className="primary full" onClick={enter}>Continue <span>→</span></button><button className="otp">▣ &nbsp; Sign in with OTP instead</button><div className="divider"><span>OR</span></div><button className="demo" onClick={demo}><span className="demo-icon">✦</span><span><b>Try Quick Demo</b><small>Explore with a pre-filled beneficiary profile</small></span><b>→</b></button><button className="demo admin-demo" onClick={() => setPortalMode('admin')} style={{ marginTop: '10px', background: '#eff6ff', borderColor: '#bfdbfe', color: '#1e40af' }}><span className="demo-icon" style={{ background: '#2563eb', color: '#fff' }}>🏛️</span><span><b>Official Officer Portal →</b><small>Field Officer ➔ District Officer ➔ Finance Approver</small></span><b>→</b></button><p className="secure">⌑ &nbsp; Your information is protected and secure</p></div></section></div> }
+function Login({ login, setLogin, demo, setPortalMode, enter }) { 
+  return (
+    <div className="login-page">
+      <div className="login-art">
+        <div className="brand light">
+          <span className="brand-mark">✦</span>
+          <span>JanSetu <em>beneficiary portal</em></span>
+        </div>
+        <div className="art-copy">
+          <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '12px' }}>
+            <span className="eyebrow">DIGITAL SUBSIDY & GRANT PLATFORM</span>
+            <span className="capstone-badge" style={{ background: '#e5b962', color: '#0c5143', fontSize: '10px', fontWeight: 'bold', padding: '2px 8px', borderRadius: '10px' }}>Infosys Springboard</span>
+          </div>
+          <h1>Every benefit.<br /><i>Closer to home.</i></h1>
+          <p>A multi-role digital portal for citizens to discover 50+ schemes and track sequential multi-stage officer approvals live.</p>
+        </div>
+        <div className="art-stats">
+          <div><b>50</b><span>Active schemes</span></div>
+          <div><b>3-Stage</b><span>Officer queue</span></div>
+          <div><b>100%</b><span>DBT fund release</span></div>
+        </div>
+      </div>
+      <section className="login-panel">
+        <div className="login-form">
+          <div className="brand mobile-brand"><span className="brand-mark">✦</span>JanSetu</div>
+          <div>
+            <span className="eyebrow">WELCOME TO JANSETU</span>
+            <h2>Sign in to your<br />beneficiary account</h2>
+            <p className="muted">Use your mobile number or Aadhaar / Citizen ID to continue.</p>
+          </div>
+          <label>
+            Mobile number or Aadhaar / Citizen ID
+            <input value={login} onChange={e => setLogin(e.target.value)} placeholder="Enter your ID (e.g. 9876543210)" />
+          </label>
+          <button className="primary full" onClick={enter}>Continue <span>→</span></button>
+          <button className="otp">▣ &nbsp; Sign in with OTP instead</button>
+          <div className="divider"><span>OR QUICK START</span></div>
+          <button className="demo" onClick={demo}>
+            <span className="demo-icon">✦</span>
+            <span><b>Try Quick Demo (Beneficiary)</b><small>Explore with pre-filled beneficiary profile & 0 applications</small></span>
+            <b>→</b>
+          </button>
+          <button className="demo admin-demo" onClick={() => setPortalMode('admin')} style={{ marginTop: '10px', background: '#eff6ff', borderColor: '#bfdbfe', color: '#1e40af' }}>
+            <span className="demo-icon" style={{ background: '#2563eb', color: '#fff' }}>🏛️</span>
+            <span><b>Official Officer Portal Demo →</b><small>Field Officer ➔ District Officer ➔ Finance Approver</small></span>
+            <b>→</b>
+          </button>
+          <p className="secure">⌑ &nbsp; Protected by National Digital Subsidy & Grant Protocol</p>
+        </div>
+      </section>
+    </div>
+  );
+}
 
 function Sidebar({ screen, setScreen, menuOpen, setMenuOpen, openChat }) { 
   const items = [['dashboard','▦','Overview'],['schemes','◈','Explore schemes'],['tracking','⌁','Application tracking'],['profile','♙','My profile']]; 
