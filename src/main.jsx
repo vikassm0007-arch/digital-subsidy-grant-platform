@@ -67,14 +67,21 @@ function App() {
   const [login, setLogin] = useState('');
   const [menuOpen, setMenuOpen] = useState(false);
   const [chatOpen, setChatOpen] = useState(false);
-  const [applications, setApplications] = useState([{ schemeId: 'sch-001', stage: 0, applied: '12 Aug 2026', ref: 'DSG-2026-0812-409' }]);
-  const [fundsReceived, setFundsReceived] = useState(1800);
+  const [applications, setApplications] = useState([]);
+  const [fundsReceived, setFundsReceived] = useState(0);
   const [notice, setNotice] = useState('');
   const [criteria, setCriteria] = useState(null);
   const applied = id => applications.find(a => a.schemeId === id);
   const activeApplication = useMemo(() => applications[0], [applications]);
 
-  const demo = () => { setProfile(demoProfile); setLogin('9876543210'); setScreen('dashboard'); };
+  const demo = () => { 
+    setProfile(demoProfile); 
+    setLogin('9876543210'); 
+    setApplications([]);
+    setFundsReceived(0);
+    setNotice('Welcome to your fresh session! Select any of the 50 schemes to submit an application and test the multi-stage approval workflow.');
+    setScreen('dashboard'); 
+  };
   const saveProfile = e => { e.preventDefault(); setScreen('dashboard'); setNotice('Your beneficiary profile has been saved.'); };
 
   const handleDisbursementUpdate = (releasedAmount) => {
@@ -144,7 +151,7 @@ function App() {
       await grantApi.submitApplication(profile.id || 1, numericId, docs); 
     } catch {} 
     setCriteria(null); 
-    setApplications([{ schemeId: scheme.id, stage: 0, applied: '03 Sep 2026', ref: `DSG-2026-0903-${Math.floor(100 + Math.random() * 900)}` }, ...applications]); 
+    setApplications([{ schemeId: scheme.id, stage: 0, applied: '07 Sep 2026', ref: `DSG-2026-0907-${Math.floor(100 + Math.random() * 900)}` }, ...applications]); 
     setNotice('Application submitted successfully. You can track its progress below.'); 
     setScreen('tracking'); 
   };
