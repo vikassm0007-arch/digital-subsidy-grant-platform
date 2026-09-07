@@ -92,13 +92,17 @@ function App() {
   const applied = id => applications.find(a => a.schemeId === id);
   const activeApplication = useMemo(() => applications[0], [applications]);
 
-  const demo = async () => { 
-    try { await grantApi.resetDemo(); } catch {}
+  const demo = async (forceReset = false) => { 
+    if (forceReset || applications.length === 0) {
+      try { await grantApi.resetDemo(); } catch {}
+      setApplications([]);
+      setFundsReceived(0);
+      setNotice('Welcome Asha Ramesh Patil! Select any of the 50 schemes below to apply and demonstrate the 3-stage approval & disbursement workflow to your teacher.');
+    } else {
+      setNotice('Welcome back Asha Ramesh Patil! Your active demo session and submitted applications are preserved.');
+    }
     setProfile(demoProfile); 
     setLogin('9876543210'); 
-    setApplications([]);
-    setFundsReceived(0);
-    setNotice('Welcome Asha Ramesh Patil! Select any of the 50 schemes below to apply and demonstrate the 3-stage approval & disbursement workflow to your teacher.');
     setScreen('dashboard'); 
   };
   const saveProfile = e => { e.preventDefault(); setScreen('dashboard'); setNotice('Your beneficiary profile has been saved.'); };
@@ -267,7 +271,7 @@ function Sidebar({ screen, setScreen, menuOpen, setMenuOpen, openChat }) {
     <nav>{items.map(([key, icon, label]) => <button key={key} className={screen === key ? 'active' : ''} onClick={() => { setScreen(key); setMenuOpen(false); }}><i>{icon}</i>{label}</button>)}</nav>
     <div className="sidebar-foot">
       <div className="help" style={{ cursor: 'pointer' }} onClick={openChat}>?<span>Need help?<small>Contact AI support 💬</small></span></div>
-      <button className="signout" onClick={() => location.reload()}>↪ Sign out</button>
+      <button className="signout" onClick={() => { setScreen('login'); setMenuOpen(false); }}>↪ Sign out</button>
     </div>
   </aside>;
 }
