@@ -181,17 +181,6 @@ function App() {
 
   if (screen === 'login') return (
     <div className="portal-container">
-      <div className="top-portal-switch">
-        <div className="switch-info">
-          <span className="brand-dot">✦</span>
-          <b>JanSetu Digital Subsidy & Grant Platform</b>
-          <span className="capstone-badge">Infosys Springboard</span>
-        </div>
-        <div className="switch-actions">
-          <button className="portal-switch-btn active">👤 Beneficiary Portal</button>
-          <button className="portal-switch-btn admin" onClick={() => setPortalMode('admin')}>🏛️ Official Officer Portal →</button>
-        </div>
-      </div>
       <Login login={login} setLogin={setLogin} demo={demo} setPortalMode={setPortalMode} enter={() => { setProfile(p => ({ ...p, mobile: login })); setScreen('profile'); }} />
     </div>
   );
@@ -200,17 +189,6 @@ function App() {
   const appScheme = schemes.find(s => s.id === app?.schemeId) || schemes[0];
   return (
     <div className="portal-container">
-      <div className="top-portal-switch">
-        <div className="switch-info">
-          <span className="brand-dot">✦</span>
-          <b>JanSetu Digital Subsidy & Grant Platform</b>
-          <span className="capstone-badge">Infosys Springboard</span>
-        </div>
-        <div className="switch-actions">
-          <button className="portal-switch-btn active">👤 Beneficiary Portal</button>
-          <button className="portal-switch-btn admin" onClick={() => setPortalMode('admin')}>🏛️ Official Officer Portal →</button>
-        </div>
-      </div>
       <div className="app-shell">
         <Sidebar screen={screen} setScreen={setScreen} menuOpen={menuOpen} setMenuOpen={setMenuOpen} openChat={() => setChatOpen(true)} />
         <main className="main-content">
@@ -897,17 +875,6 @@ function AdminPortal({ setPortalMode, onDisbursementUpdate, onStageAdvance }) {
 
   return (
     <div className="admin-portal-wrapper">
-      <div className="top-portal-switch">
-        <div className="switch-info">
-          <span className="brand-dot">✦</span>
-          <b>JanSetu Digital Subsidy & Grant Platform</b>
-          <span className="capstone-badge">Infosys Springboard</span>
-        </div>
-        <div className="switch-actions">
-          <button className="portal-switch-btn beneficiary" onClick={() => setPortalMode('beneficiary')} style={{ background: '#e5b962', color: '#0c5143', fontWeight: 700 }}>👤 Beneficiary Portal →</button>
-          <button className="portal-switch-btn admin active">🏛️ Official Officer Portal</button>
-        </div>
-      </div>
       <header className="admin-topbar">
         <div className="admin-brand">
           <span className="gov-emblem">🇮🇳</span>
