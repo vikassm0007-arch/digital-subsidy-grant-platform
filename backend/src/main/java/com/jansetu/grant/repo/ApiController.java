@@ -91,20 +91,29 @@ public class ApiController {
    a.setAppliedDate(LocalDate.now());
    a = applications.save(a); 
 
-   String[] names = {"Registration benefit", "Verification clearance", "Final approval"};
-   int[] percentages = {30, 40, 30}; 
+    String[] names = {"Registration benefit", "Verification clearance", "Final approval"};
+    int[] percentages = {30, 40, 30}; 
 
-   for (int i = 0; i < 3; i++) {
-     DisbursementStage d = new DisbursementStage();
-     d.setApplication(a);
-     d.setStageNumber(i + 1);
-     d.setStageName(names[i]);
-     d.setPercentage(percentages[i]);
-     d.setAmount("Stage " + (i + 1) + " (" + percentages[i] + "%)");
-     d.setStatus(i == 0 ? StageStatus.RELEASED : StageStatus.PENDING);
-     d.setReleaseDate(i == 0 ? LocalDate.now() : null);
-     stages.save(d);
-   } 
+    long totalGrant = 5000;
+    try {
+      String cleanStr = s.getGrantAmount() != null ? s.getGrantAmount().replaceAll("[^0-9]", "") : "";
+      if (!cleanStr.isEmpty()) {
+        totalGrant = Long.parseLong(cleanStr);
+      }
+    } catch (Exception ignored) {}
+
+    for (int i = 0; i < 3; i++) {
+      DisbursementStage d = new DisbursementStage();
+      d.setApplication(a);
+      d.setStageNumber(i + 1);
+      d.setStageName(names[i]);
+      d.setPercentage(percentages[i]);
+      long stageAmt = i == 2 ? (totalGrant - (totalGrant * 30 / 100) - (totalGrant * 40 / 100)) : (totalGrant * percentages[i]) / 100;
+      d.setAmount("₹" + String.format("%,d", stageAmt));
+      d.setStatus(StageStatus.PENDING);
+      d.setReleaseDate(null);
+      stages.save(d);
+    } 
    
    return ApplicationResponse.of(a, stages.findByApplicationIdOrderByStageNumber(a.getId()));
  }
