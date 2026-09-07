@@ -59,6 +59,7 @@ const schemes = [
 const blankProfile = { name: '', dob: '', gender: '', mobile: '', aadhaar: '', category: '', income: '', employment: '', state: '', district: '', village: '', bank: '', ifsc: '' };
 const demoProfile = { name: 'Asha Ramesh Patil', dob: '1993-08-18', gender: 'Female', mobile: '9876543210', aadhaar: 'XXXX XXXX 4812', category: 'OBC', income: '180000', employment: 'Farmer', state: 'Maharashtra', district: 'Pune', village: 'Khed', bank: '245710003456', ifsc: 'SBIN0000456' };
 
+
 function App() {
   const [portalMode, setPortalMode] = useState('beneficiary');
   const [screen, setScreen] = useState('login');
@@ -66,7 +67,8 @@ function App() {
   const [login, setLogin] = useState('');
   const [menuOpen, setMenuOpen] = useState(false);
   const [chatOpen, setChatOpen] = useState(false);
-  const [applications, setApplications] = useState([{ schemeId: 'sch-001', stage: 2, applied: '12 Aug 2026', ref: 'DSG-2026-0812-409' }]);
+  const [applications, setApplications] = useState([{ schemeId: 'sch-001', stage: 0, applied: '12 Aug 2026', ref: 'DSG-2026-0812-409' }]);
+  const [fundsReceived, setFundsReceived] = useState(1800);
   const [notice, setNotice] = useState('');
   const [criteria, setCriteria] = useState(null);
   const applied = id => applications.find(a => a.schemeId === id);
@@ -74,6 +76,16 @@ function App() {
 
   const demo = () => { setProfile(demoProfile); setLogin('9876543210'); setScreen('dashboard'); };
   const saveProfile = e => { e.preventDefault(); setScreen('dashboard'); setNotice('Your beneficiary profile has been saved.'); };
+
+  const handleDisbursementUpdate = (releasedAmount) => {
+    setFundsReceived(prev => prev + releasedAmount);
+    setApplications(prev => prev.map((a, i) => i === 0 ? { ...a, stage: 3, status: 'DISBURSED' } : a));
+    setNotice(`🎉 Direct Benefit Transfer (DBT) of ₹${releasedAmount.toLocaleString('en-IN')} has been credited to your bank account!`);
+  };
+
+  const handleStageAdvance = (newStage, newStatus) => {
+    setApplications(prev => prev.map((a, i) => i === 0 ? { ...a, stage: newStage, status: newStatus } : a));
+  };
   
   const apply = async schemeId => {
     if (applied(schemeId)) { setScreen('tracking'); return; }
@@ -138,7 +150,7 @@ function App() {
   };
 
   if (portalMode === 'admin') {
-    return <AdminPortal setPortalMode={setPortalMode} />;
+    return <AdminPortal setPortalMode={setPortalMode} onDisbursementUpdate={handleDisbursementUpdate} onStageAdvance={handleStageAdvance} />;
   }
 
   if (screen === 'login') return (
@@ -179,9 +191,9 @@ function App() {
           <Topbar profile={profile} setMenuOpen={setMenuOpen} />
           {notice && <div className="notice"><span>✓</span>{notice}<button onClick={() => setNotice('')}>×</button></div>}
           {screen === 'profile' && <Profile profile={profile} setProfile={setProfile} saveProfile={saveProfile} />}
-          {screen === 'dashboard' && <Dashboard profile={profile} schemes={schemes} applications={applications} apply={apply} checkCriteria={checkCriteria} setScreen={setScreen} openChat={() => setChatOpen(true)} />}
+          {screen === 'dashboard' && <Dashboard profile={profile} schemes={schemes} applications={applications} fundsReceived={fundsReceived} apply={apply} checkCriteria={checkCriteria} setScreen={setScreen} openChat={() => setChatOpen(true)} />}
           {screen === 'schemes' && <Schemes schemes={schemes} applications={applications} apply={apply} checkCriteria={checkCriteria} />}
-          {screen === 'tracking' && <Tracking app={app} scheme={appScheme} setScreen={setScreen} />}
+          {screen === 'tracking' && <Tracking app={app} scheme={appScheme} fundsReceived={fundsReceived} setScreen={setScreen} />}
           {criteria && <CriteriaModal scheme={criteria.scheme} result={criteria.result} close={() => setCriteria(null)} confirm={confirmApplication} />}
           <Chatbot profile={profile} schemes={schemes} applications={applications} open={chatOpen} setOpen={setChatOpen} />
         </main>
@@ -210,15 +222,24 @@ function Profile({ profile, setProfile, saveProfile }) { const update = (key, va
 function options(key) { return key === 'gender' ? ['Female','Male','Non-binary','Prefer not to say'] : key === 'category' ? ['General','OBC','SC','ST','Minorities'] : key === 'employment' ? ['Farmer','Self-employed','Employed','Student','Unemployed'] : ['Andhra Pradesh','Karnataka','Maharashtra','Tamil Nadu','Uttar Pradesh']; }
 function PageTitle({ eyebrow, title, desc, action }) { return <div className="page-title"><div><span className="eyebrow">{eyebrow}</span><h1>{title}</h1><p>{desc}</p></div>{action}</div> }
 
-function Dashboard({ profile, schemes, applications, apply, checkCriteria, setScreen, openChat }) { 
+function Dashboard({ profile, schemes, applications, fundsReceived = 1800, apply, checkCriteria, setScreen, openChat }) { 
   const latest = applications[0]; 
   const scheme = schemes.find(s => s.id === latest.schemeId) || schemes[0]; 
+  const isDisbursed = latest.stage === 3 || latest.status === 'DISBURSED';
+  const isDistrictApproved = latest.stage === 2 || latest.status === 'DISTRICT_APPROVED';
+  const isFieldVerified = latest.stage === 1 || latest.status === 'FIELD_VERIFIED';
+
+  const statusLabel = isDisbursed ? '✓ Funds Disbursed to Bank' :
+                      isDistrictApproved ? '★ District Approved' :
+                      isFieldVerified ? '✓ Field Verified' : 'In Field Verification';
+  const statusPillCls = isDisbursed ? 'green-pill' : isDistrictApproved ? 'blue' : 'amber';
+
   return <section className="page">
     <PageTitle eyebrow="GOOD MORNING" title={<>Welcome back, <b>{(profile.name || 'Beneficiary').split(' ')[0]}.</b></>} desc="Here is a snapshot of your benefits and applications." action={<button className="outline" onClick={() => setScreen('schemes')}>Explore all 50 schemes <b>→</b></button>} />
     <div className="summary-grid">
       <div className="summary green-summary"><span className="summary-icon">⌘</span><div><small>AVAILABLE FOR YOU</small><b>50 schemes</b><p>Based on your profile</p></div></div>
       <div className="summary amber-summary"><span className="summary-icon">◷</span><div><small>ACTIVE APPLICATIONS</small><b>{applications.length} application{applications.length !== 1 && 's'}</b><p>Currently in process</p></div></div>
-      <div className="summary blue-summary"><span className="summary-icon">₹</span><div><small>FUNDS RECEIVED</small><b>₹1,800</b><p>Across all schemes</p></div></div>
+      <div className="summary blue-summary"><span className="summary-icon">₹</span><div><small>FUNDS RECEIVED</small><b>₹{fundsReceived.toLocaleString('en-IN')}</b><p>Across all schemes</p></div></div>
     </div>
     <div className="two-col">
       <div className="panel status-panel">
@@ -227,7 +248,7 @@ function Dashboard({ profile, schemes, applications, apply, checkCriteria, setSc
           <button className="text-button" onClick={() => setScreen('tracking')}>View tracking →</button>
         </div>
         <Progress stage={latest.stage} compact />
-        <div className="status-meta"><span>Application no. <b>{latest.ref}</b></span><span className="pill amber">In field verification</span></div>
+        <div className="status-meta"><span>Application no. <b>{latest.ref}</b></span><span className={`pill ${statusPillCls}`}>{statusLabel}</span></div>
       </div>
       <div className="panel support-panel">
         <span className="support-emoji">💬</span>
@@ -315,13 +336,28 @@ function SchemeCard({ scheme, applied, apply, checkCriteria }) {
 
 function Progress({ stage, compact }) { const steps = ['Application submitted','Field check','District approval','Funds disbursed']; return <div className={`progress ${compact ? 'compact' : ''}`}>{steps.map((step, i) => <div className="progress-step" key={step}><span className={i <= stage ? 'done' : ''}>{i < stage ? '✓' : i + 1}</span><p>{step}</p>{i < 3 && <i className={i < stage ? 'line done-line' : 'line'} />}</div>)}</div> }
 
-function Tracking({ app, scheme, setScreen }) { 
+function Tracking({ app, scheme, fundsReceived = 1800, setScreen }) { 
   if (!app) return <section className="page empty"><h1>No applications yet</h1><button className="primary" onClick={() => setScreen('schemes')}>Explore schemes</button></section>; 
+  
+  const isDisbursed = app.stage === 3 || app.status === 'DISBURSED';
+  const isDistrictApproved = app.stage === 2 || app.status === 'DISTRICT_APPROVED';
+  const isFieldVerified = app.stage === 1 || app.status === 'FIELD_VERIFIED';
+
+  const heroTitleText = isDisbursed ? 'Funds Disbursed & Credited!' :
+                        isDistrictApproved ? 'District Officer Approved' :
+                        isFieldVerified ? 'Field Officer Verification Cleared' : 'Field verification in progress';
+  
+  const heroDescText = isDisbursed ? `Your grant benefit of ${scheme.amount} has been successfully released via Direct Benefit Transfer (DBT) to your bank account.` :
+                       isDistrictApproved ? 'Your application has been approved by the District Development Commissioner and sent to Finance Approver for fund release.' :
+                       isFieldVerified ? 'Field inspection completed. Your application is under review by the District Development Commissioner.' :
+                       'Your application is with the local field officer for document and eligibility verification.';
+
   const stages = [
     { name: 'Stage 1 · Registration benefit', amount: '₹1,800', date: 'Credited 14 Aug 2026', status: 'Released', done: true },
-    { name: 'Stage 2 · Verification clearance', amount: '₹2,400', date: 'Expected 25 Sep 2026', status: 'Awaiting field check' },
-    { name: 'Stage 3 · Final approval', amount: '₹1,800', date: 'Expected 15 Oct 2026', status: 'Pending district approval' }
+    { name: 'Stage 2 · Verification clearance', amount: '₹2,400', date: isDisbursed || app.stage >= 2 ? 'Credited 07 Sep 2026' : 'Expected 25 Sep 2026', status: isDisbursed || app.stage >= 2 ? 'Released' : 'Awaiting field check', done: isDisbursed || app.stage >= 2 },
+    { name: 'Stage 3 · Final approval', amount: '₹1,800', date: isDisbursed ? 'Credited 07 Sep 2026' : 'Expected 15 Oct 2026', status: isDisbursed ? 'Released' : 'Pending district approval', done: isDisbursed }
   ]; 
+
   return <section className="page tracking-page">
     <PageTitle eyebrow="APPLICATION TRACKING" title={<><b>{scheme.short}</b> application</>} desc={`Reference no. ${app.ref} · Submitted on ${app.applied}`} />
     <div className="tracking-hero">
@@ -329,11 +365,13 @@ function Tracking({ app, scheme, setScreen }) {
         <span className="scheme-icon">{scheme.icon}</span>
         <div>
           <span className="eyebrow">CURRENT STATUS</span>
-          <h2>Field verification in progress</h2>
-          <p>Your application is with the local field officer for document and eligibility verification.</p>
+          <h2>{heroTitleText}</h2>
+          <p>{heroDescText}</p>
         </div>
       </div>
-      <span className="pill amber">● In progress</span>
+      <span className={isDisbursed ? 'pill green-pill' : 'pill amber'}>
+        {isDisbursed ? '✓ DISBURSED' : '● IN PROGRESS'}
+      </span>
     </div>
     <div className="panel progress-panel">
       <h3>Application progress</h3>
@@ -342,7 +380,7 @@ function Tracking({ app, scheme, setScreen }) {
         <span>⌁</span>
         <div>
           <b>What happens next?</b>
-          <p>After field verification, your application will be sent to the District Officer for approval.</p>
+          <p>{isDisbursed ? 'Your grant benefit is fully credited. Check your registered bank account for DBT payment confirmation.' : isDistrictApproved ? 'Finance Approver will release the remaining staged funds directly to your bank account.' : isFieldVerified ? 'District Officer is evaluating budget availability to grant final approval.' : 'After field verification, your application will be sent to the District Officer for approval.'}</p>
         </div>
       </div>
     </div>
@@ -637,7 +675,7 @@ const INITIAL_QUEUE = [
   }
 ];
 
-function AdminPortal({ setPortalMode }) {
+function AdminPortal({ setPortalMode, onDisbursementUpdate, onStageAdvance }) {
   const [activeRole, setActiveRole] = useState('ROLE_FIELD_OFFICER');
   const [queue, setQueue] = useState(INITIAL_QUEUE);
   const [selectedApp, setSelectedApp] = useState(null);
@@ -667,10 +705,16 @@ function AdminPortal({ setPortalMode }) {
       await grantApi.approveApplication(app.id, activeRole, remarks);
     } catch {}
 
+    const next = activeRole === 'ROLE_FIELD_OFFICER' ? 'FIELD_VERIFIED' : 
+                 activeRole === 'ROLE_DISTRICT_OFFICER' ? 'DISTRICT_APPROVED' : 'DISBURSED';
+
+    if (onStageAdvance) {
+      const nextStage = activeRole === 'ROLE_FIELD_OFFICER' ? 1 : activeRole === 'ROLE_DISTRICT_OFFICER' ? 2 : 3;
+      onStageAdvance(nextStage, next);
+    }
+
     setQueue(prev => prev.map(item => {
       if (item.id === app.id) {
-        const next = activeRole === 'ROLE_FIELD_OFFICER' ? 'FIELD_VERIFIED' : 
-                     activeRole === 'ROLE_DISTRICT_OFFICER' ? 'DISTRICT_APPROVED' : 'DISBURSED';
         return { ...item, status: next };
       }
       return item;
@@ -700,10 +744,23 @@ function AdminPortal({ setPortalMode }) {
         bankAccount: app.beneficiaryBank || '245710003456',
         ifscCode: app.beneficiaryIfsc || 'SBIN0000456',
         stageName: `Stage ${stageNum} Release`,
-        amountReleased: app.appliedAmount || '₹1,800',
+        amountReleased: app.appliedAmount || '₹2,400',
         status: 'SUCCESS_RELEASED',
         timestamp: new Date().toISOString().split('T')[0]
       };
+    }
+
+    let releasedNum = 2400;
+    if (result && result.amountReleased) {
+      const parsed = parseInt(result.amountReleased.replace(/[^0-9]/g, ''), 10);
+      if (parsed > 0) releasedNum = parsed;
+    } else if (app.appliedAmount) {
+      const parsed = parseInt(app.appliedAmount.replace(/[^0-9]/g, ''), 10);
+      if (parsed > 0) releasedNum = parsed;
+    }
+
+    if (onDisbursementUpdate) {
+      onDisbursementUpdate(releasedNum);
     }
 
     setQueue(prev => prev.map(item => {
