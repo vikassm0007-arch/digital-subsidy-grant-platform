@@ -845,6 +845,17 @@ function AdminPortal({ setPortalMode, onDisbursementUpdate, onStageAdvance }) {
 
   return (
     <div className="admin-portal-wrapper">
+      <div className="top-portal-switch">
+        <div className="switch-info">
+          <span className="brand-dot">✦</span>
+          <b>JanSetu Digital Subsidy & Grant Platform</b>
+          <span className="capstone-badge">Infosys Springboard</span>
+        </div>
+        <div className="switch-actions">
+          <button className="portal-switch-btn beneficiary" onClick={() => setPortalMode('beneficiary')} style={{ background: '#e5b962', color: '#0c5143', fontWeight: 700 }}>👤 Beneficiary Portal →</button>
+          <button className="portal-switch-btn admin active">🏛️ Official Officer Portal</button>
+        </div>
+      </div>
       <header className="admin-topbar">
         <div className="admin-brand">
           <span className="gov-emblem">🇮🇳</span>
@@ -854,7 +865,7 @@ function AdminPortal({ setPortalMode, onDisbursementUpdate, onStageAdvance }) {
           </div>
         </div>
         <button className="beneficiary-return-btn" onClick={() => setPortalMode('beneficiary')}>
-          ← Return to Beneficiary Portal
+          👤 Beneficiary Portal ←
         </button>
       </header>
 
