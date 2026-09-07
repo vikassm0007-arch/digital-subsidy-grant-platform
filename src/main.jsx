@@ -92,12 +92,13 @@ function App() {
   const applied = id => applications.find(a => a.schemeId === id);
   const activeApplication = useMemo(() => applications[0], [applications]);
 
-  const demo = () => { 
+  const demo = async () => { 
+    try { await grantApi.resetDemo(); } catch {}
     setProfile(demoProfile); 
     setLogin('9876543210'); 
     setApplications([]);
     setFundsReceived(0);
-    setNotice('Welcome to your fresh session! Select any of the 50 schemes to submit an application and test the multi-stage approval workflow.');
+    setNotice('Welcome Asha Ramesh Patil! Select any of the 50 schemes below to apply and demonstrate the 3-stage approval & disbursement workflow to your teacher.');
     setScreen('dashboard'); 
   };
   const saveProfile = e => { e.preventDefault(); setScreen('dashboard'); setNotice('Your beneficiary profile has been saved.'); };

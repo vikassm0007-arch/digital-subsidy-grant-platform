@@ -226,6 +226,13 @@ public class ApiController {
     );
   }
 
+  @PostMapping("/reset-demo")
+  public Map<String, Object> resetDemo() {
+    stages.deleteAll();
+    applications.deleteAll();
+    return Map.of("message", "Demo database reset to zero applications", "status", "SUCCESS");
+  }
+
   private Beneficiary beneficiary(Long id) {
     return beneficiaries.findById(id).orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Beneficiary not found"));
   } 

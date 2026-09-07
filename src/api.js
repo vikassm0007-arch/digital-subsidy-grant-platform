@@ -21,4 +21,5 @@ export const grantApi = {
   approveApplication: (applicationId, officerRole, remarks = '') => request('/verify/approve', { method: 'POST', body: JSON.stringify({ applicationId, officerRole, remarks }) }),
   rejectApplication: (applicationId, officerRole, reason = '') => request('/verify/reject', { method: 'POST', body: JSON.stringify({ applicationId, officerRole, reason }) }),
   releaseFunds: (applicationId, stageNumber = null, remarks = '') => request('/disburse/release', { method: 'POST', body: JSON.stringify({ applicationId, stageNumber, remarks }) }),
+  resetDemo: () => request('/reset-demo', { method: 'POST' }),
 };
