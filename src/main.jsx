@@ -229,12 +229,12 @@ function Profile({ profile, setProfile, saveProfile }) { const update = (key, va
 function options(key) { return key === 'gender' ? ['Female','Male','Non-binary','Prefer not to say'] : key === 'category' ? ['General','OBC','SC','ST','Minorities'] : key === 'employment' ? ['Farmer','Self-employed','Employed','Student','Unemployed'] : ['Andhra Pradesh','Karnataka','Maharashtra','Tamil Nadu','Uttar Pradesh']; }
 function PageTitle({ eyebrow, title, desc, action }) { return <div className="page-title"><div><span className="eyebrow">{eyebrow}</span><h1>{title}</h1><p>{desc}</p></div>{action}</div> }
 
-function Dashboard({ profile, schemes, applications, fundsReceived = 1800, apply, checkCriteria, setScreen, openChat }) { 
-  const latest = applications[0]; 
-  const scheme = schemes.find(s => s.id === latest.schemeId) || schemes[0]; 
-  const isDisbursed = latest.stage === 3 || latest.status === 'DISBURSED';
-  const isDistrictApproved = latest.stage === 2 || latest.status === 'DISTRICT_APPROVED';
-  const isFieldVerified = latest.stage === 1 || latest.status === 'FIELD_VERIFIED';
+function Dashboard({ profile, schemes, applications = [], fundsReceived = 0, apply, checkCriteria, setScreen, openChat }) { 
+  const latest = applications && applications.length > 0 ? applications[0] : null; 
+  const scheme = latest ? (schemes.find(s => s.id === latest.schemeId) || schemes[0]) : schemes[0]; 
+  const isDisbursed = latest ? (latest.stage === 3 || latest.status === 'DISBURSED') : false;
+  const isDistrictApproved = latest ? (latest.stage === 2 || latest.status === 'DISTRICT_APPROVED') : false;
+  const isFieldVerified = latest ? (latest.stage === 1 || latest.status === 'FIELD_VERIFIED') : false;
 
   const statusLabel = isDisbursed ? '✓ Funds Disbursed to Bank' :
                       isDistrictApproved ? '★ District Approved' :
@@ -246,17 +246,30 @@ function Dashboard({ profile, schemes, applications, fundsReceived = 1800, apply
     <div className="summary-grid">
       <div className="summary green-summary"><span className="summary-icon">⌘</span><div><small>AVAILABLE FOR YOU</small><b>50 schemes</b><p>Based on your profile</p></div></div>
       <div className="summary amber-summary"><span className="summary-icon">◷</span><div><small>ACTIVE APPLICATIONS</small><b>{applications.length} application{applications.length !== 1 && 's'}</b><p>Currently in process</p></div></div>
-      <div className="summary blue-summary"><span className="summary-icon">₹</span><div><small>FUNDS RECEIVED</small><b>₹{fundsReceived.toLocaleString('en-IN')}</b><p>Across all schemes</p></div></div>
+      <div className="summary blue-summary"><span className="summary-icon">₹</span><div><small>FUNDS RECEIVED</small><b>₹{(fundsReceived || 0).toLocaleString('en-IN')}</b><p>Across all schemes</p></div></div>
     </div>
     <div className="two-col">
-      <div className="panel status-panel">
-        <div className="panel-head">
-          <div><span className="eyebrow">LATEST APPLICATION</span><h3>{scheme.short}</h3></div>
-          <button className="text-button" onClick={() => setScreen('tracking')}>View tracking →</button>
+      {latest ? (
+        <div className="panel status-panel">
+          <div className="panel-head">
+            <div><span className="eyebrow">LATEST APPLICATION</span><h3>{scheme.short}</h3></div>
+            <button className="text-button" onClick={() => setScreen('tracking')}>View tracking →</button>
+          </div>
+          <Progress stage={latest.stage} compact />
+          <div className="status-meta"><span>Application no. <b>{latest.ref}</b></span><span className={`pill ${statusPillCls}`}>{statusLabel}</span></div>
         </div>
-        <Progress stage={latest.stage} compact />
-        <div className="status-meta"><span>Application no. <b>{latest.ref}</b></span><span className={`pill ${statusPillCls}`}>{statusLabel}</span></div>
-      </div>
+      ) : (
+        <div className="panel status-panel">
+          <div className="panel-head">
+            <div><span className="eyebrow">GET STARTED</span><h3>No Active Applications</h3></div>
+            <button className="text-button" onClick={() => setScreen('schemes')}>Explore schemes →</button>
+          </div>
+          <div style={{ padding: '12px 0', color: '#475569', fontSize: '14px' }}>
+            <p style={{ margin: '0 0 12px 0' }}>Select any of the 50 government schemes to submit an application and experience the multi-stage approval workflow.</p>
+            <button className="primary" onClick={() => setScreen('schemes')} style={{ padding: '8px 16px', fontSize: '14px' }}>Browse 50 Schemes & Apply Now <b>→</b></button>
+          </div>
+        </div>
+      )}
       <div className="panel support-panel">
         <span className="support-emoji">💬</span>
         <h3>Need a hand?</h3>
@@ -269,7 +282,7 @@ function Dashboard({ profile, schemes, applications, fundsReceived = 1800, apply
         <div><span className="eyebrow">RECOMMENDED FOR YOU</span><h2>Find the support you need</h2></div>
         <button className="text-button" onClick={() => setScreen('schemes')}>View all 50 schemes →</button>
       </div>
-      <div className="scheme-grid">{schemes.slice(0,6).map(s => <SchemeCard key={s.id} scheme={s} applied={!!applications.find(a => a.schemeId === s.id)} apply={apply} checkCriteria={checkCriteria} />)}</div>
+      <div className="scheme-grid">{schemes.slice(0,6).map(s => <SchemeCard key={s.id} scheme={s} applied={!!(applications && applications.find(a => a.schemeId === s.id))} apply={apply} checkCriteria={checkCriteria} />)}</div>
     </section>
   </section>; 
 }
