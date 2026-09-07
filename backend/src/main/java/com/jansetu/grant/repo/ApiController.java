@@ -109,53 +109,205 @@ public class ApiController {
    return ApplicationResponse.of(a, stages.findByApplicationIdOrderByStageNumber(a.getId()));
  }
 
- @GetMapping("/applications/tracker/{beneficiaryId}") 
- public List<ApplicationResponse> tracker(@PathVariable Long beneficiaryId) {
-   return applications.findByBeneficiaryIdOrderByAppliedDateDesc(beneficiaryId).stream()
-     .map(a -> ApplicationResponse.of(a, stages.findByApplicationIdOrderByStageNumber(a.getId()))).toList();
- }
+  @GetMapping("/applications/tracker/{beneficiaryId}") 
+  public List<ApplicationResponse> tracker(@PathVariable Long beneficiaryId) {
+    return applications.findByBeneficiaryIdOrderByAppliedDateDesc(beneficiaryId).stream()
+      .map(a -> ApplicationResponse.of(a, stages.findByApplicationIdOrderByStageNumber(a.getId()))).toList();
+  }
 
- private Beneficiary beneficiary(Long id) {
-   return beneficiaries.findById(id).orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Beneficiary not found"));
- } 
+  @PostMapping("/officer/login")
+  public OfficerLoginResponse officerLogin(@RequestBody OfficerLoginBody body) {
+    if ("field.officer@gov.in".equalsIgnoreCase(body.email()) && "Field@2026".equals(body.password())) {
+      return new OfficerLoginResponse("field.officer@gov.in", "Rajesh Kumar", "ROLE_FIELD_OFFICER", "Senior Field Verification Inspector", "Pune North Sub-District");
+    } else if ("district.officer@gov.in".equalsIgnoreCase(body.email()) && "District@2026".equals(body.password())) {
+      return new OfficerLoginResponse("district.officer@gov.in", "Ananya Deshmukh", "ROLE_DISTRICT_OFFICER", "District Development Commissioner", "Pune District Circle");
+    } else if ("finance.approver@gov.in".equalsIgnoreCase(body.email()) && "Finance@2026".equals(body.password())) {
+      return new OfficerLoginResponse("finance.approver@gov.in", "Suresh Patil", "ROLE_FINANCE_APPROVER", "Chief Financial Control Officer", "State Treasury Directorate");
+    }
+    throw new ResponseStatusException(HttpStatus.UNAUTHORIZED, "Invalid officer login credentials");
+  }
 
- private Scheme scheme(Long id) {
-   return schemes.findById(id).orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Scheme not found"));
- }
+  @GetMapping("/officer/applications")
+  public List<OfficerApplicationResponse> getOfficerQueue(@RequestParam(required = false) String role) {
+    List<GrantRequest> list;
+    if ("ROLE_FIELD_OFFICER".equalsIgnoreCase(role)) {
+      list = applications.findByStatusOrderByAppliedDateDesc(ApplicationStatus.SUBMITTED);
+    } else if ("ROLE_DISTRICT_OFFICER".equalsIgnoreCase(role)) {
+      list = applications.findByStatusOrderByAppliedDateDesc(ApplicationStatus.FIELD_VERIFIED);
+    } else if ("ROLE_FINANCE_APPROVER".equalsIgnoreCase(role)) {
+      list = applications.findByStatusOrderByAppliedDateDesc(ApplicationStatus.DISTRICT_APPROVED);
+    } else {
+      list = applications.findAllByOrderByAppliedDateDesc();
+    }
+    return list.stream().map(a -> OfficerApplicationResponse.of(a, stages.findByApplicationIdOrderByStageNumber(a.getId()))).toList();
+  }
 
- private void applyProfile(Beneficiary b, ProfileBody p) {
-   b.setName(p.name());
-   b.setMobile(p.mobile());
-   b.setAadhaarNo(p.aadhaarNo());
-   b.setCategory(p.category());
-   b.setAnnualIncome(p.annualIncome());
-   b.setBankAccount(p.bankAccount());
-   b.setIfscCode(p.ifscCode());
-   b.setDistrict(p.district());
-   b.setState(p.state());
- }
+  @PostMapping("/verify/approve")
+  public OfficerApplicationResponse approveApplication(@RequestBody OfficerApproveBody body) {
+    GrantRequest a = applications.findById(body.applicationId())
+        .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Application not found"));
 
- record LoginBody(@NotBlank String identifier) {} 
- record LoginResponse(Long id, String name, String mobile, String aadhaarNo) {} 
- record ProfileBody(Long id, String name, String mobile, String aadhaarNo, String category, BigDecimal annualIncome, String bankAccount, String ifscCode, String district, String state) {} 
- record ValidationBody(Long beneficiaryId, Set<String> documents) {} 
- record ApplyBody(Long beneficiaryId, Long schemeId, Set<String> documents) {} 
- record EligibleResponse(boolean eligible, boolean incomeEligible, boolean categoryEligible, BigDecimal maxIncomeLimit, List<String> allowedCategories, List<String> requiredDocuments, List<String> missingDocuments, String message) {} 
- record SchemeResponse(Long id, String code, String title, String description, String grantAmount, BigDecimal maxIncomeLimit, List<String> allowedCategories, List<String> requiredDocuments) {
-   static SchemeResponse of(Scheme s) {
-     List<String> allowed = s.getEligibleCategories() != null ? Arrays.asList(s.getEligibleCategories().split(",")) : List.of("All");
-     List<String> reqDocs = s.getRequiredDocuments() != null ? Arrays.asList(s.getRequiredDocuments().split(",")) : List.of();
-     return new SchemeResponse(s.getId(), s.getCode(), s.getTitle(), s.getDescription(), s.getGrantAmount(), s.getMaxIncomeLimit(), allowed, reqDocs);
-   }
- } 
- record StageResponse(int stageNumber, String stageName, int percentage, String amount, StageStatus status, LocalDate releaseDate) {
-   static StageResponse of(DisbursementStage s) {
-     return new StageResponse(s.getStageNumber(), s.getStageName(), s.getPercentage(), s.getAmount(), s.getStatus(), s.getReleaseDate());
-   }
- } 
- record ApplicationResponse(Long id, Long schemeId, String schemeTitle, ApplicationStatus status, String appliedAmount, LocalDate appliedDate, List<StageResponse> disbursements) {
-   static ApplicationResponse of(GrantRequest a, List<DisbursementStage> d) {
-     return new ApplicationResponse(a.getId(), a.getScheme().getId(), a.getScheme().getTitle(), a.getStatus(), a.getAppliedAmount(), a.getAppliedDate(), d.stream().map(StageResponse::of).toList());
-   }
- }
+    if ("ROLE_FIELD_OFFICER".equalsIgnoreCase(body.officerRole()) || a.getStatus() == ApplicationStatus.SUBMITTED) {
+      a.setStatus(ApplicationStatus.FIELD_VERIFIED);
+    } else if ("ROLE_DISTRICT_OFFICER".equalsIgnoreCase(body.officerRole()) || a.getStatus() == ApplicationStatus.FIELD_VERIFIED) {
+      a.setStatus(ApplicationStatus.DISTRICT_APPROVED);
+    } else if ("ROLE_FINANCE_APPROVER".equalsIgnoreCase(body.officerRole()) || a.getStatus() == ApplicationStatus.DISTRICT_APPROVED) {
+      a.setStatus(ApplicationStatus.DISBURSED);
+      List<DisbursementStage> appStages = stages.findByApplicationIdOrderByStageNumber(a.getId());
+      for (DisbursementStage s : appStages) {
+        s.setStatus(StageStatus.RELEASED);
+        s.setReleaseDate(LocalDate.now());
+        stages.save(s);
+      }
+    }
+    a = applications.save(a);
+    return OfficerApplicationResponse.of(a, stages.findByApplicationIdOrderByStageNumber(a.getId()));
+  }
+
+  @PostMapping("/verify/reject")
+  public OfficerApplicationResponse rejectApplication(@RequestBody OfficerRejectBody body) {
+    GrantRequest a = applications.findById(body.applicationId())
+        .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Application not found"));
+    a.setStatus(ApplicationStatus.REJECTED);
+    a = applications.save(a);
+    return OfficerApplicationResponse.of(a, stages.findByApplicationIdOrderByStageNumber(a.getId()));
+  }
+
+  @PostMapping("/disburse/release")
+  public PaymentGatewayResult releaseFunds(@RequestBody DisburseBody body) {
+    GrantRequest a = applications.findById(body.applicationId())
+        .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Application not found"));
+
+    List<DisbursementStage> appStages = stages.findByApplicationIdOrderByStageNumber(a.getId());
+    DisbursementStage targetStage = null;
+    if (body.stageNumber() != null) {
+      targetStage = appStages.stream().filter(s -> s.getStageNumber() == body.stageNumber()).findFirst().orElse(null);
+    }
+    if (targetStage == null && !appStages.isEmpty()) {
+      targetStage = appStages.stream().filter(s -> s.getStatus() == StageStatus.PENDING).findFirst().orElse(appStages.get(0));
+    }
+
+    if (targetStage != null) {
+      targetStage.setStatus(StageStatus.RELEASED);
+      targetStage.setReleaseDate(LocalDate.now());
+      stages.save(targetStage);
+    }
+
+    boolean allReleased = stages.findByApplicationIdOrderByStageNumber(a.getId()).stream()
+        .allMatch(s -> s.getStatus() == StageStatus.RELEASED);
+    if (allReleased) {
+      a.setStatus(ApplicationStatus.DISBURSED);
+      applications.save(a);
+    }
+
+    Beneficiary b = a.getBeneficiary();
+    String txnId = "DBT-2026-TXN-" + String.format("%04d", (int)(Math.random() * 9000) + 1000);
+    String amount = targetStage != null ? targetStage.getAmount() : a.getAppliedAmount();
+    String stageName = targetStage != null ? targetStage.getStageName() : "Fund Release";
+
+    return new PaymentGatewayResult(
+        txnId,
+        b != null ? b.getName() : "Asha Ramesh Patil",
+        b != null && b.getBankAccount() != null ? b.getBankAccount() : "245710003456",
+        b != null && b.getIfscCode() != null ? b.getIfscCode() : "SBIN0000456",
+        stageName,
+        amount,
+        "SUCCESS_RELEASED",
+        LocalDate.now()
+    );
+  }
+
+  private Beneficiary beneficiary(Long id) {
+    return beneficiaries.findById(id).orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Beneficiary not found"));
+  } 
+
+  private Scheme scheme(Long id) {
+    return schemes.findById(id).orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Scheme not found"));
+  }
+
+  private void applyProfile(Beneficiary b, ProfileBody p) {
+    b.setName(p.name());
+    b.setMobile(p.mobile());
+    b.setAadhaarNo(p.aadhaarNo());
+    b.setCategory(p.category());
+    b.setAnnualIncome(p.annualIncome());
+    b.setBankAccount(p.bankAccount());
+    b.setIfscCode(p.ifscCode());
+    b.setDistrict(p.district());
+    b.setState(p.state());
+  }
+
+  record LoginBody(@NotBlank String identifier) {} 
+  record LoginResponse(Long id, String name, String mobile, String aadhaarNo) {} 
+  record ProfileBody(Long id, String name, String mobile, String aadhaarNo, String category, BigDecimal annualIncome, String bankAccount, String ifscCode, String district, String state) {} 
+  record ValidationBody(Long beneficiaryId, Set<String> documents) {} 
+  record ApplyBody(Long beneficiaryId, Long schemeId, Set<String> documents) {} 
+  record EligibleResponse(boolean eligible, boolean incomeEligible, boolean categoryEligible, BigDecimal maxIncomeLimit, List<String> allowedCategories, List<String> requiredDocuments, List<String> missingDocuments, String message) {} 
+  record SchemeResponse(Long id, String code, String title, String description, String grantAmount, BigDecimal maxIncomeLimit, List<String> allowedCategories, List<String> requiredDocuments) {
+    static SchemeResponse of(Scheme s) {
+      List<String> allowed = s.getEligibleCategories() != null ? Arrays.asList(s.getEligibleCategories().split(",")) : List.of("All");
+      List<String> reqDocs = s.getRequiredDocuments() != null ? Arrays.asList(s.getRequiredDocuments().split(",")) : List.of();
+      return new SchemeResponse(s.getId(), s.getCode(), s.getTitle(), s.getDescription(), s.getGrantAmount(), s.getMaxIncomeLimit(), allowed, reqDocs);
+    }
+  } 
+  record StageResponse(int stageNumber, String stageName, int percentage, String amount, StageStatus status, LocalDate releaseDate) {
+    static StageResponse of(DisbursementStage s) {
+      return new StageResponse(s.getStageNumber(), s.getStageName(), s.getPercentage(), s.getAmount(), s.getStatus(), s.getReleaseDate());
+    }
+  } 
+  record ApplicationResponse(Long id, Long schemeId, String schemeTitle, ApplicationStatus status, String appliedAmount, LocalDate appliedDate, List<StageResponse> disbursements) {
+    static ApplicationResponse of(GrantRequest a, List<DisbursementStage> d) {
+      return new ApplicationResponse(a.getId(), a.getScheme().getId(), a.getScheme().getTitle(), a.getStatus(), a.getAppliedAmount(), a.getAppliedDate(), d.stream().map(StageResponse::of).toList());
+    }
+  }
+  record OfficerLoginBody(String email, String password) {}
+  record OfficerLoginResponse(String email, String name, String role, String designation, String jurisdiction) {}
+  record OfficerApproveBody(Long applicationId, String officerRole, String remarks) {}
+  record OfficerRejectBody(Long applicationId, String officerRole, String reason) {}
+  record DisburseBody(Long applicationId, Integer stageNumber, String remarks) {}
+  record PaymentGatewayResult(String txnRef, String beneficiaryName, String bankAccount, String ifscCode, String stageName, String amountReleased, String status, LocalDate timestamp) {}
+  record OfficerApplicationResponse(
+      Long id, 
+      Long schemeId, 
+      String schemeTitle, 
+      String schemeCode,
+      ApplicationStatus status, 
+      String appliedAmount, 
+      LocalDate appliedDate, 
+      Long beneficiaryId,
+      String beneficiaryName,
+      String beneficiaryMobile,
+      String beneficiaryAadhaar,
+      String beneficiaryCategory,
+      BigDecimal beneficiaryIncome,
+      String beneficiaryDistrict,
+      String beneficiaryState,
+      String beneficiaryBank,
+      String beneficiaryIfsc,
+      List<StageResponse> disbursements
+  ) {
+    static OfficerApplicationResponse of(GrantRequest a, List<DisbursementStage> d) {
+      Beneficiary b = a.getBeneficiary();
+      return new OfficerApplicationResponse(
+          a.getId(),
+          a.getScheme().getId(),
+          a.getScheme().getTitle(),
+          a.getScheme().getCode(),
+          a.getStatus(),
+          a.getAppliedAmount(),
+          a.getAppliedDate(),
+          b != null ? b.getId() : null,
+          b != null ? b.getName() : "Unknown Beneficiary",
+          b != null ? b.getMobile() : "N/A",
+          b != null ? b.getAadhaarNo() : "N/A",
+          b != null ? b.getCategory() : "General",
+          b != null ? b.getAnnualIncome() : BigDecimal.ZERO,
+          b != null ? b.getDistrict() : "Pune",
+          b != null ? b.getState() : "Maharashtra",
+          b != null ? b.getBankAccount() : "245710003456",
+          b != null ? b.getIfscCode() : "SBIN0000456",
+          d.stream().map(StageResponse::of).toList()
+      );
+    }
+  }
 }

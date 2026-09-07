@@ -60,6 +60,7 @@ const blankProfile = { name: '', dob: '', gender: '', mobile: '', aadhaar: '', c
 const demoProfile = { name: 'Asha Ramesh Patil', dob: '1993-08-18', gender: 'Female', mobile: '9876543210', aadhaar: 'XXXX XXXX 4812', category: 'OBC', income: '180000', employment: 'Farmer', state: 'Maharashtra', district: 'Pune', village: 'Khed', bank: '245710003456', ifsc: 'SBIN0000456' };
 
 function App() {
+  const [portalMode, setPortalMode] = useState('beneficiary');
   const [screen, setScreen] = useState('login');
   const [profile, setProfile] = useState(blankProfile);
   const [login, setLogin] = useState('');
@@ -136,22 +137,57 @@ function App() {
     setScreen('tracking'); 
   };
 
-  if (screen === 'login') return <Login login={login} setLogin={setLogin} demo={demo} enter={() => { setProfile(p => ({ ...p, mobile: login })); setScreen('profile'); }} />;
+  if (portalMode === 'admin') {
+    return <AdminPortal setPortalMode={setPortalMode} />;
+  }
+
+  if (screen === 'login') return (
+    <div className="portal-container">
+      <div className="top-portal-switch">
+        <div className="switch-info">
+          <span className="brand-dot">✦</span>
+          <b>JanSetu Digital Subsidy & Grant Platform</b>
+          <span className="capstone-badge">Infosys Springboard</span>
+        </div>
+        <div className="switch-actions">
+          <button className="portal-switch-btn active">👤 Beneficiary Portal</button>
+          <button className="portal-switch-btn admin" onClick={() => setPortalMode('admin')}>🏛️ Official Officer Portal →</button>
+        </div>
+      </div>
+      <Login login={login} setLogin={setLogin} demo={demo} enter={() => { setProfile(p => ({ ...p, mobile: login })); setScreen('profile'); }} />
+    </div>
+  );
+
   const app = activeApplication;
   const appScheme = schemes.find(s => s.id === app?.schemeId) || schemes[0];
-  return <div className="app-shell">
-    <Sidebar screen={screen} setScreen={setScreen} menuOpen={menuOpen} setMenuOpen={setMenuOpen} openChat={() => setChatOpen(true)} />
-    <main className="main-content">
-      <Topbar profile={profile} setMenuOpen={setMenuOpen} />
-      {notice && <div className="notice"><span>✓</span>{notice}<button onClick={() => setNotice('')}>×</button></div>}
-      {screen === 'profile' && <Profile profile={profile} setProfile={setProfile} saveProfile={saveProfile} />}
-      {screen === 'dashboard' && <Dashboard profile={profile} schemes={schemes} applications={applications} apply={apply} checkCriteria={checkCriteria} setScreen={setScreen} openChat={() => setChatOpen(true)} />}
-      {screen === 'schemes' && <Schemes schemes={schemes} applications={applications} apply={apply} checkCriteria={checkCriteria} />}
-      {screen === 'tracking' && <Tracking app={app} scheme={appScheme} setScreen={setScreen} />}
-      {criteria && <CriteriaModal scheme={criteria.scheme} result={criteria.result} close={() => setCriteria(null)} confirm={confirmApplication} />}
-      <Chatbot profile={profile} schemes={schemes} applications={applications} open={chatOpen} setOpen={setChatOpen} />
-    </main>
-  </div>;
+  return (
+    <div className="portal-container">
+      <div className="top-portal-switch">
+        <div className="switch-info">
+          <span className="brand-dot">✦</span>
+          <b>JanSetu Digital Subsidy & Grant Platform</b>
+          <span className="capstone-badge">Infosys Springboard</span>
+        </div>
+        <div className="switch-actions">
+          <button className="portal-switch-btn active">👤 Beneficiary Portal</button>
+          <button className="portal-switch-btn admin" onClick={() => setPortalMode('admin')}>🏛️ Official Officer Portal →</button>
+        </div>
+      </div>
+      <div className="app-shell">
+        <Sidebar screen={screen} setScreen={setScreen} menuOpen={menuOpen} setMenuOpen={setMenuOpen} openChat={() => setChatOpen(true)} />
+        <main className="main-content">
+          <Topbar profile={profile} setMenuOpen={setMenuOpen} />
+          {notice && <div className="notice"><span>✓</span>{notice}<button onClick={() => setNotice('')}>×</button></div>}
+          {screen === 'profile' && <Profile profile={profile} setProfile={setProfile} saveProfile={saveProfile} />}
+          {screen === 'dashboard' && <Dashboard profile={profile} schemes={schemes} applications={applications} apply={apply} checkCriteria={checkCriteria} setScreen={setScreen} openChat={() => setChatOpen(true)} />}
+          {screen === 'schemes' && <Schemes schemes={schemes} applications={applications} apply={apply} checkCriteria={checkCriteria} />}
+          {screen === 'tracking' && <Tracking app={app} scheme={appScheme} setScreen={setScreen} />}
+          {criteria && <CriteriaModal scheme={criteria.scheme} result={criteria.result} close={() => setCriteria(null)} confirm={confirmApplication} />}
+          <Chatbot profile={profile} schemes={schemes} applications={applications} open={chatOpen} setOpen={setChatOpen} />
+        </main>
+      </div>
+    </div>
+  );
 }
 
 function Login({ login, setLogin, demo, enter }) { return <div className="login-page"><div className="login-art"><div className="brand light"><span className="brand-mark">✦</span><span>JanSetu <em>beneficiary portal</em></span></div><div className="art-copy"><span className="eyebrow">DIGITAL SUBSIDY & GRANT PLATFORM</span><h1>Every benefit.<br /><i>Closer to home.</i></h1><p>A simpler way to discover, apply for, and track government support built around you.</p></div><div className="art-stats"><div><b>50</b><span>Active schemes</span></div><div><b>100%</b><span>Transparent tracking</span></div></div></div><section className="login-panel"><div className="login-form"><div className="brand mobile-brand"><span className="brand-mark">✦</span>JanSetu</div><div><span className="eyebrow">WELCOME TO JANSETU</span><h2>Sign in to your<br />beneficiary account</h2><p className="muted">Use your mobile number or Aadhaar / Citizen ID to continue.</p></div><label>Mobile number or Aadhaar / Citizen ID<input value={login} onChange={e => setLogin(e.target.value)} placeholder="Enter your ID" /></label><button className="primary full" onClick={enter}>Continue <span>→</span></button><button className="otp">▣ &nbsp; Sign in with OTP instead</button><div className="divider"><span>OR</span></div><button className="demo" onClick={demo}><span className="demo-icon">✦</span><span><b>Try Quick Demo</b><small>Explore with a pre-filled beneficiary profile</small></span><b>→</b></button><p className="secure">⌑ &nbsp; Your information is protected and secure</p></div></section></div> }
@@ -473,6 +509,587 @@ function getBotResponse(query, profile, schemes, applications) {
   }
 
   return `✦ JanSetu AI Assistant: I can answer questions on all 50 government schemes (Agriculture, Housing, Solar, Education, MSME, Women Welfare, EV, etc.), required document checklists, or application status! Try asking: "What schemes are for farmers?" or "Docs for Mudra loan".`;
+}
+
+const OFFICERS = {
+  ROLE_FIELD_OFFICER: {
+    email: 'field.officer@gov.in',
+    password: 'Field@2026',
+    name: 'Rajesh Kumar',
+    role: 'ROLE_FIELD_OFFICER',
+    title: 'Field Officer Portal',
+    designation: 'Senior Field Verification Inspector',
+    jurisdiction: 'Pune North Sub-District',
+    badge: '🔍 Field Officer',
+    targetStatus: 'SUBMITTED',
+    nextStatus: 'FIELD_VERIFIED',
+    actionText: 'Verify & Forward',
+    color: '#d97706',
+    bg: '#fef3c7'
+  },
+  ROLE_DISTRICT_OFFICER: {
+    email: 'district.officer@gov.in',
+    password: 'District@2026',
+    name: 'Ananya Deshmukh',
+    role: 'ROLE_DISTRICT_OFFICER',
+    title: 'District Officer Portal',
+    designation: 'District Development Commissioner',
+    jurisdiction: 'Pune District Circle',
+    badge: '🏛️ District Officer',
+    targetStatus: 'FIELD_VERIFIED',
+    nextStatus: 'DISTRICT_APPROVED',
+    actionText: 'Review & Approve',
+    color: '#2563eb',
+    bg: '#dbeafe'
+  },
+  ROLE_FINANCE_APPROVER: {
+    email: 'finance.approver@gov.in',
+    password: 'Finance@2026',
+    name: 'Suresh Patil',
+    role: 'ROLE_FINANCE_APPROVER',
+    title: 'Finance Approver Portal',
+    designation: 'Chief Financial Control Officer',
+    jurisdiction: 'State Treasury Directorate',
+    badge: '💳 Finance Approver',
+    targetStatus: 'DISTRICT_APPROVED',
+    nextStatus: 'DISBURSED',
+    actionText: 'Configure Fund Release',
+    color: '#059669',
+    bg: '#d1fae5'
+  }
+};
+
+const INITIAL_QUEUE = [
+  {
+    id: 101,
+    schemeId: 1,
+    schemeCode: 'PM-KISAN',
+    schemeTitle: 'PM-KISAN Samman Nidhi',
+    status: 'SUBMITTED',
+    appliedAmount: '₹6,000 / year',
+    appliedDate: '2026-09-03',
+    beneficiaryId: 1,
+    beneficiaryName: 'Asha Ramesh Patil',
+    beneficiaryMobile: '9876543210',
+    beneficiaryAadhaar: 'XXXX XXXX 4812',
+    beneficiaryCategory: 'OBC',
+    beneficiaryIncome: 180000,
+    beneficiaryDistrict: 'Pune',
+    beneficiaryState: 'Maharashtra',
+    beneficiaryBank: '245710003456',
+    beneficiaryIfsc: 'SBIN0000456',
+    documents: ['Land Ownership Copy', 'Aadhaar Card', 'Bank Passbook'],
+    disbursements: [
+      { stageNumber: 1, stageName: 'Registration benefit', percentage: 30, amount: '₹1,800', status: 'PENDING' },
+      { stageNumber: 2, stageName: 'Verification clearance', percentage: 40, amount: '₹2,400', status: 'PENDING' },
+      { stageNumber: 3, stageName: 'Final approval', percentage: 30, amount: '₹1,800', status: 'PENDING' }
+    ]
+  },
+  {
+    id: 102,
+    schemeId: 2,
+    schemeCode: 'SOLAR',
+    schemeTitle: 'PM Surya Ghar Free Electricity Scheme',
+    status: 'FIELD_VERIFIED',
+    appliedAmount: '₹78,000',
+    appliedDate: '2026-09-02',
+    beneficiaryId: 2,
+    beneficiaryName: 'Ramesh Chandra Sharma',
+    beneficiaryMobile: '9812345678',
+    beneficiaryAadhaar: 'XXXX XXXX 8912',
+    beneficiaryCategory: 'General',
+    beneficiaryIncome: 350000,
+    beneficiaryDistrict: 'Pune',
+    beneficiaryState: 'Maharashtra',
+    beneficiaryBank: '318490214821',
+    beneficiaryIfsc: 'HDFC0001234',
+    documents: ['Electricity Bill', 'Property Proof', 'Roof Layout Plan', 'Aadhaar Card'],
+    disbursements: [
+      { stageNumber: 1, stageName: 'Site Survey & Installation', percentage: 40, amount: '₹31,200', status: 'RELEASED', releaseDate: '2026-09-02' },
+      { stageNumber: 2, stageName: 'Grid Connectivity', percentage: 40, amount: '₹31,200', status: 'PENDING' },
+      { stageNumber: 3, stageName: 'Final Subsidy Release', percentage: 20, amount: '₹15,600', status: 'PENDING' }
+    ]
+  },
+  {
+    id: 103,
+    schemeId: 5,
+    schemeCode: 'EDU',
+    schemeTitle: 'Post Matric Scholarship for SC Students',
+    status: 'DISTRICT_APPROVED',
+    appliedAmount: '₹75,000',
+    appliedDate: '2026-09-01',
+    beneficiaryId: 3,
+    beneficiaryName: 'Sunita Devi Yadav',
+    beneficiaryMobile: '9765432109',
+    beneficiaryAadhaar: 'XXXX XXXX 3456',
+    beneficiaryCategory: 'SC',
+    beneficiaryIncome: 140000,
+    beneficiaryDistrict: 'Pune',
+    beneficiaryState: 'Maharashtra',
+    beneficiaryBank: '510294821039',
+    beneficiaryIfsc: 'PUNB0192800',
+    documents: ['SC Caste Certificate', 'Income Certificate', 'College Admission Slip', 'Marksheets'],
+    disbursements: [
+      { stageNumber: 1, stageName: 'Tuition Fee Subsidy', percentage: 50, amount: '₹37,500', status: 'RELEASED', releaseDate: '2026-09-01' },
+      { stageNumber: 2, stageName: 'Living Stipend Part 1', percentage: 25, amount: '₹18,750', status: 'PENDING' },
+      { stageNumber: 3, stageName: 'Living Stipend Part 2', percentage: 25, amount: '₹18,750', status: 'PENDING' }
+    ]
+  }
+];
+
+function AdminPortal({ setPortalMode }) {
+  const [activeRole, setActiveRole] = useState('ROLE_FIELD_OFFICER');
+  const [queue, setQueue] = useState(INITIAL_QUEUE);
+  const [selectedApp, setSelectedApp] = useState(null);
+  const [paymentTxn, setPaymentTxn] = useState(null);
+  const [remarks, setRemarks] = useState('');
+  const [filterStatus, setFilterStatus] = useState('ROLE_QUEUE');
+
+  const officer = OFFICERS[activeRole];
+
+  useEffect(() => {
+    fetchQueue(activeRole);
+  }, [activeRole]);
+
+  const fetchQueue = async (role) => {
+    try {
+      const data = await grantApi.getOfficerQueue(role);
+      if (Array.isArray(data) && data.length > 0) {
+        setQueue(data);
+      }
+    } catch {
+      // Keep state
+    }
+  };
+
+  const handleApprove = async (app) => {
+    try {
+      await grantApi.approveApplication(app.id, activeRole, remarks);
+    } catch {}
+
+    setQueue(prev => prev.map(item => {
+      if (item.id === app.id) {
+        const next = activeRole === 'ROLE_FIELD_OFFICER' ? 'FIELD_VERIFIED' : 
+                     activeRole === 'ROLE_DISTRICT_OFFICER' ? 'DISTRICT_APPROVED' : 'DISBURSED';
+        return { ...item, status: next };
+      }
+      return item;
+    }));
+    setSelectedApp(null);
+    setRemarks('');
+  };
+
+  const handleReject = async (app) => {
+    try {
+      await grantApi.rejectApplication(app.id, activeRole, remarks || 'Application rejected');
+    } catch {}
+
+    setQueue(prev => prev.map(item => item.id === app.id ? { ...item, status: 'REJECTED' } : item));
+    setSelectedApp(null);
+    setRemarks('');
+  };
+
+  const handleDisburse = async (app, stageNum = 1) => {
+    let result = null;
+    try {
+      result = await grantApi.releaseFunds(app.id, stageNum, remarks);
+    } catch {
+      result = {
+        txnRef: `DBT-2026-TXN-${Math.floor(1000 + Math.random() * 9000)}`,
+        beneficiaryName: app.beneficiaryName || 'Asha Ramesh Patil',
+        bankAccount: app.beneficiaryBank || '245710003456',
+        ifscCode: app.beneficiaryIfsc || 'SBIN0000456',
+        stageName: `Stage ${stageNum} Release`,
+        amountReleased: app.appliedAmount || '₹1,800',
+        status: 'SUCCESS_RELEASED',
+        timestamp: new Date().toISOString().split('T')[0]
+      };
+    }
+
+    setQueue(prev => prev.map(item => {
+      if (item.id === app.id) {
+        const updatedStages = (item.disbursements || []).map((s, idx) => 
+          idx + 1 === stageNum ? { ...s, status: 'RELEASED', releaseDate: new Date().toISOString().split('T')[0] } : s
+        );
+        return { ...item, status: 'DISBURSED', disbursements: updatedStages };
+      }
+      return item;
+    }));
+
+    setSelectedApp(null);
+    setPaymentTxn(result);
+  };
+
+  const filteredQueue = queue.filter(item => {
+    if (filterStatus === 'ROLE_QUEUE') return item.status === officer.targetStatus;
+    if (filterStatus === 'ALL') return true;
+    return item.status === filterStatus;
+  });
+
+  return (
+    <div className="admin-portal-wrapper">
+      <header className="admin-topbar">
+        <div className="admin-brand">
+          <span className="gov-emblem">🇮🇳</span>
+          <div>
+            <h3>Digital Subsidy & Grant Administration</h3>
+            <p>Government of India · Administrative Approval & Disbursement Portal</p>
+          </div>
+        </div>
+        <button className="beneficiary-return-btn" onClick={() => setPortalMode('beneficiary')}>
+          ← Return to Beneficiary Portal
+        </button>
+      </header>
+
+      <div className="role-switcher-banner">
+        <div className="role-switcher-title">
+          <span>🔐 <b>OFFICIAL ROLE SWITCHER</b> (Infosys Springboard Reviewer Portal)</span>
+          <small>Click to switch logged-in government officer role instantly:</small>
+        </div>
+        <div className="role-cards-grid">
+          {Object.values(OFFICERS).map(o => (
+            <button
+              key={o.role}
+              className={`role-card ${activeRole === o.role ? 'selected' : ''}`}
+              onClick={() => setActiveRole(o.role)}
+            >
+              <span className="role-card-badge">{o.badge}</span>
+              <div className="role-card-info">
+                <b>{o.name}</b>
+                <small>{o.email}</small>
+                <code>Password: {o.password}</code>
+              </div>
+            </button>
+          ))}
+        </div>
+      </div>
+
+      <main className="admin-content">
+        <div className="officer-profile-header">
+          <div className="officer-avatar-box">
+            <span>{officer.badge.split(' ')[0]}</span>
+          </div>
+          <div className="officer-profile-details">
+            <span className="role-chip" style={{ backgroundColor: officer.bg, color: officer.color }}>
+              ● ACTIVE ROLE: {officer.role}
+            </span>
+            <h2>{officer.name} — {officer.title}</h2>
+            <p><strong>Designation:</strong> {officer.designation} &nbsp;|&nbsp; <strong>Jurisdiction:</strong> {officer.jurisdiction}</p>
+          </div>
+          <div className="officer-queue-stats">
+            <div className="stat-pill amber">
+              <small>PENDING IN QUEUE</small>
+              <b>{queue.filter(i => i.status === officer.targetStatus).length}</b>
+            </div>
+            <div className="stat-pill green">
+              <small>PROCESSED</small>
+              <b>{queue.filter(i => i.status !== officer.targetStatus).length}</b>
+            </div>
+          </div>
+        </div>
+
+        <div className="admin-queue-section">
+          <div className="queue-controls">
+            <div className="queue-title-area">
+              <h3>Approval & Disbursement Queue</h3>
+              <p>Showing applications requiring <strong>{officer.title}</strong> action</p>
+            </div>
+            <div className="queue-filters">
+              <label>Queue Filter:</label>
+              <select value={filterStatus} onChange={e => setFilterStatus(e.target.value)}>
+                <option value="ROLE_QUEUE">Pending My Role Action ({officer.targetStatus})</option>
+                <option value="ALL">All Applications (All Stages)</option>
+                <option value="SUBMITTED">Status: SUBMITTED (Field Queue)</option>
+                <option value="FIELD_VERIFIED">Status: FIELD_VERIFIED (District Queue)</option>
+                <option value="DISTRICT_APPROVED">Status: DISTRICT_APPROVED (Finance Queue)</option>
+                <option value="DISBURSED">Status: DISBURSED</option>
+                <option value="REJECTED">Status: REJECTED</option>
+              </select>
+            </div>
+          </div>
+
+          <div className="admin-table-container">
+            <table className="admin-table">
+              <thead>
+                <tr>
+                  <th>App Ref</th>
+                  <th>Beneficiary Name</th>
+                  <th>Scheme</th>
+                  <th>District / State</th>
+                  <th>Category</th>
+                  <th>Applied Amount</th>
+                  <th>Current Status</th>
+                  <th>Action</th>
+                </tr>
+              </thead>
+              <tbody>
+                {filteredQueue.length === 0 ? (
+                  <tr>
+                    <td colSpan="8" className="empty-table">
+                      ✓ No pending applications in this officer queue right now.
+                    </td>
+                  </tr>
+                ) : (
+                  filteredQueue.map(app => (
+                    <tr key={app.id}>
+                      <td><strong>DSG-2026-{app.id}</strong></td>
+                      <td>
+                        <b>{app.beneficiaryName}</b>
+                        <br />
+                        <small className="muted">{app.beneficiaryMobile} | Aadhaar: {app.beneficiaryAadhaar}</small>
+                      </td>
+                      <td>
+                        <span className="scheme-tag">{app.schemeCode}</span>
+                        <br />
+                        <small>{app.schemeTitle}</small>
+                      </td>
+                      <td>{app.beneficiaryDistrict}, {app.beneficiaryState}</td>
+                      <td><span className="cat-badge">{app.beneficiaryCategory}</span></td>
+                      <td><b>{app.appliedAmount}</b></td>
+                      <td><StatusBadge status={app.status} /></td>
+                      <td>
+                        <button
+                          className={`action-btn ${app.status === officer.targetStatus ? 'primary-action' : 'secondary-action'}`}
+                          onClick={() => setSelectedApp(app)}
+                        >
+                          {app.status === officer.targetStatus ? `Process (${officer.actionText})` : 'Inspect Details'}
+                        </button>
+                      </td>
+                    </tr>
+                  ))
+                )}
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </main>
+
+      {selectedApp && (
+        <OfficerActionModal
+          app={selectedApp}
+          officer={officer}
+          remarks={remarks}
+          setRemarks={setRemarks}
+          onApprove={() => handleApprove(selectedApp)}
+          onReject={() => handleReject(selectedApp)}
+          onDisburse={(stageNum) => handleDisburse(selectedApp, stageNum)}
+          onClose={() => setSelectedApp(null)}
+        />
+      )}
+
+      {paymentTxn && (
+        <PaymentGatewayModal
+          txn={paymentTxn}
+          onClose={() => setPaymentTxn(null)}
+        />
+      )}
+    </div>
+  );
+}
+
+function StatusBadge({ status }) {
+  const map = {
+    SUBMITTED: { label: '● SUBMITTED', cls: 'badge-submitted' },
+    FIELD_VERIFIED: { label: '✓ FIELD VERIFIED', cls: 'badge-verified' },
+    DISTRICT_APPROVED: { label: '★ DISTRICT APPROVED', cls: 'badge-approved' },
+    DISBURSED: { label: '💰 DISBURSED / RELEASED', cls: 'badge-disbursed' },
+    REJECTED: { label: '✕ REJECTED', cls: 'badge-rejected' }
+  };
+  const b = map[status] || { label: status, cls: 'badge-submitted' };
+  return <span className={`status-badge ${b.cls}`}>{b.label}</span>;
+}
+
+function OfficerActionModal({ app, officer, remarks, setRemarks, onApprove, onReject, onDisburse, onClose }) {
+  const [landChecked, setLandChecked] = useState(true);
+  const [incomeChecked, setIncomeChecked] = useState(true);
+  const [identityChecked, setIdentityChecked] = useState(true);
+
+  return (
+    <div className="modal-backdrop" role="dialog" aria-modal="true">
+      <div className="admin-modal-card">
+        <div className="admin-modal-header" style={{ borderLeft: `6px solid ${officer.color}` }}>
+          <div>
+            <span className="role-chip" style={{ backgroundColor: officer.bg, color: officer.color }}>
+              {officer.badge} REVIEW & VERIFICATION
+            </span>
+            <h2>{app.schemeTitle}</h2>
+            <p>Application Ref: <strong>DSG-2026-{app.id}</strong> · Submitted on {app.appliedDate}</p>
+          </div>
+          <button className="modal-close" onClick={onClose}>×</button>
+        </div>
+
+        <div className="admin-modal-body">
+          <div className="beneficiary-summary-card">
+            <h4>👤 Beneficiary Inspection Profile</h4>
+            <div className="bio-grid">
+              <div><small>FULL NAME</small><b>{app.beneficiaryName}</b></div>
+              <div><small>MOBILE NUMBER</small><b>{app.beneficiaryMobile}</b></div>
+              <div><small>AADHAAR NUMBER</small><b>{app.beneficiaryAadhaar}</b></div>
+              <div><small>SOCIAL CATEGORY</small><b>{app.beneficiaryCategory}</b></div>
+              <div><small>ANNUAL INCOME</small><b>₹{Number(app.beneficiaryIncome || 0).toLocaleString('en-IN')} / yr</b></div>
+              <div><small>BANK ACCOUNT</small><b>{app.beneficiaryBank} ({app.beneficiaryIfsc})</b></div>
+              <div><small>DISTRICT / STATE</small><b>{app.beneficiaryDistrict}, {app.beneficiaryState}</b></div>
+              <div><small>CURRENT WORKFLOW STATE</small><b><StatusBadge status={app.status} /></b></div>
+            </div>
+          </div>
+
+          {officer.role === 'ROLE_FIELD_OFFICER' && (
+            <div className="inspection-section">
+              <h4>🔍 Stage 1: Field Officer Physical Inspection Checklist</h4>
+              <div className="checklist-group">
+                <label className="checkbox-item">
+                  <input type="checkbox" checked={landChecked} onChange={e => setLandChecked(e.target.checked)} />
+                  <span><strong>Physical Household & Land Survey:</strong> Verified physical address & land parcel records in {app.beneficiaryDistrict}.</span>
+                </label>
+                <label className="checkbox-item">
+                  <input type="checkbox" checked={incomeChecked} onChange={e => setIncomeChecked(e.target.checked)} />
+                  <span><strong>Income & Asset Verification:</strong> Verified annual income declaration (₹{Number(app.beneficiaryIncome || 0).toLocaleString('en-IN')}) with tehsildar records.</span>
+                </label>
+                <label className="checkbox-item">
+                  <input type="checkbox" checked={identityChecked} onChange={e => setIdentityChecked(e.target.checked)} />
+                  <span><strong>Uploaded Document Authenticity:</strong> Aadhaar Card, Bank Passbook, and Category Certificates cross-verified.</span>
+                </label>
+              </div>
+            </div>
+          )}
+
+          {officer.role === 'ROLE_DISTRICT_OFFICER' && (
+            <div className="inspection-section">
+              <h4>🏛️ Stage 2: District Officer Budget & Policy Clearance</h4>
+              <div className="budget-alert-card">
+                <div>
+                  <strong>District Subsidy Budget Status (Pune District):</strong>
+                  <p>Allocated District Budget: <strong>₹50,00,000</strong> &nbsp;|&nbsp; Funds Disbursed: <strong>₹11,50,000</strong> &nbsp;|&nbsp; Available Balance: <span className="green-text">₹38,50,000</span></p>
+                </div>
+                <span className="badge-verified">✓ Budget Available</span>
+              </div>
+              <p className="verified-note">✓ Verified and cleared by Senior Field Officer <strong>Rajesh Kumar</strong> (Field Check OK).</p>
+            </div>
+          )}
+
+          {officer.role === 'ROLE_FINANCE_APPROVER' && (
+            <div className="inspection-section">
+              <h4>💳 Stage 3: Finance Approver Fund Release Configuration</h4>
+              <p className="verified-note">★ Approved by District Commissioner <strong>Ananya Deshmukh</strong>. Ready for Payment Gateway Direct Benefit Transfer (DBT).</p>
+              
+              <div className="staged-disbursement-table">
+                <h5>Configured Staged Release Breakdown ({app.appliedAmount}):</h5>
+                {app.disbursements && app.disbursements.length > 0 ? (
+                  app.disbursements.map((stg, i) => (
+                    <div key={i} className="stage-disburse-row">
+                      <span><strong>Stage {stg.stageNumber}:</strong> {stg.stageName} ({stg.percentage}%)</span>
+                      <b>{stg.amount}</b>
+                      <span className={stg.status === 'RELEASED' ? 'pill green-pill' : 'pill gray'}>{stg.status}</span>
+                      {stg.status !== 'RELEASED' && (
+                        <button className="primary disburse-btn" onClick={() => onDisburse(stg.stageNumber)}>
+                          Release Stage {stg.stageNumber} Fund ➔
+                        </button>
+                      )}
+                    </div>
+                  ))
+                ) : (
+                  <div className="stage-disburse-row">
+                    <span>Full Grant Benefit Release</span>
+                    <b>{app.appliedAmount}</b>
+                    <button className="primary disburse-btn" onClick={() => onDisburse(1)}>
+                      Release Full Funds via Gateway ➔
+                    </button>
+                  </div>
+                )}
+              </div>
+            </div>
+          )}
+
+          <div className="remarks-area">
+            <label>Officer Audit Remarks & Inspection Notes:</label>
+            <textarea
+              rows="2"
+              placeholder="Enter official remarks or feedback for beneficiary..."
+              value={remarks}
+              onChange={e => setRemarks(e.target.value)}
+            />
+          </div>
+        </div>
+
+        <div className="admin-modal-footer">
+          <button className="btn-outline-danger" onClick={onReject}>
+            ✕ Reject / Return Application
+          </button>
+          
+          {officer.role === 'ROLE_FIELD_OFFICER' && (
+            <button className="primary" onClick={onApprove} disabled={!landChecked || !incomeChecked || !identityChecked}>
+              ✓ Approve & Forward to District Officer (FIELD_VERIFIED) ➔
+            </button>
+          )}
+
+          {officer.role === 'ROLE_DISTRICT_OFFICER' && (
+            <button className="primary" onClick={onApprove}>
+              ★ Approve & Forward to Finance Approver (DISTRICT_APPROVED) ➔
+            </button>
+          )}
+
+          {officer.role === 'ROLE_FINANCE_APPROVER' && (
+            <button className="primary green-btn" onClick={() => onDisburse(1)}>
+              💳 Execute Direct Benefit Transfer (DBT) Release ➔
+            </button>
+          )}
+        </div>
+      </div>
+    </div>
+  );
+}
+
+function PaymentGatewayModal({ txn, onClose }) {
+  return (
+    <div className="modal-backdrop" role="dialog" aria-modal="true">
+      <div className="payment-gateway-modal">
+        <div className="gateway-success-header">
+          <div className="gateway-checkmark">✓</div>
+          <h2>Direct Benefit Transfer (DBT) Executed!</h2>
+          <p>Simulated Payment Gateway transaction completed successfully.</p>
+        </div>
+
+        <div className="gateway-receipt-card">
+          <div className="receipt-row">
+            <span>Transaction Reference:</span>
+            <code className="txn-code">{txn.txnRef}</code>
+          </div>
+          <div className="receipt-row">
+            <span>Beneficiary Name:</span>
+            <b>{txn.beneficiaryName}</b>
+          </div>
+          <div className="receipt-row">
+            <span>Destination Bank Account:</span>
+            <b>{txn.bankAccount}</b>
+          </div>
+          <div className="receipt-row">
+            <span>IFSC Code:</span>
+            <b>{txn.ifscCode}</b>
+          </div>
+          <div className="receipt-row">
+            <span>Disbursement Stage:</span>
+            <b>{txn.stageName}</b>
+          </div>
+          <div className="receipt-row highlight">
+            <span>Amount Transferred:</span>
+            <b className="released-amount">{txn.amountReleased}</b>
+          </div>
+          <div className="receipt-row">
+            <span>Payment Status:</span>
+            <span className="pill green-pill">SUCCESS_RELEASED (DBT-NPVI)</span>
+          </div>
+          <div className="receipt-row">
+            <span>Timestamp:</span>
+            <small>{txn.timestamp} 17:55:00 IST</small>
+          </div>
+        </div>
+
+        <button className="primary full" onClick={onClose}>
+          Done & Close Receipt
+        </button>
+      </div>
+    </div>
+  );
 }
 
 createRoot(document.getElementById('root')).render(<App />);

@@ -1,2 +1,2 @@
 package com.jansetu.grant.domain;
-public enum ApplicationStatus { SUBMITTED, FIELD_VERIFIED, DISTRICT_APPROVED, DISBURSED }
+public enum ApplicationStatus { SUBMITTED, FIELD_VERIFIED, DISTRICT_APPROVED, DISBURSED, REJECTED, REVISION_REQUESTED }
