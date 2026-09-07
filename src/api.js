@@ -1,4 +1,4 @@
-const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:8080/api';
+const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:8088/api/v1';
 
 async function request(path, options = {}) {
   const response = await fetch(`${API_URL}${path}`, {
@@ -13,16 +13,7 @@ async function request(path, options = {}) {
 }
 
 export const grantApi = {
-  // Beneficiary APIs
-  getBeneficiaries: () => request('/beneficiaries'),
-  createBeneficiary: (data) => request('/beneficiaries', { method: 'POST', body: JSON.stringify(data) }),
-  updateBeneficiary: (id, data) => request(`/beneficiaries/${id}`, { method: 'PUT', body: JSON.stringify(data) }),
-
-  // Scheme APIs
-  getFarmerSchemes: () => request('/schemes/farmer'),
-  createFarmerScheme: (data) => request('/schemes/farmer/create-scheme', { method: 'POST', body: JSON.stringify(data) }),
-  evaluateFarmerEligibility: (data) => request('/schemes/farmer/evaluate', { method: 'POST', body: JSON.stringify(data) }),
-
-  // Application APIs
-  submitApplication: (data) => request('/applications', { method: 'POST', body: JSON.stringify(data) }),
+  getBeneficiaries: () => request('/schemes'),
+  validateCriteria: (schemeId, beneficiaryId, documents) => request(`/schemes/${schemeId}/validate-criteria`, { method: 'POST', body: JSON.stringify({ beneficiaryId, documents }) }),
+  submitApplication: (beneficiaryId, schemeId, documents) => request('/applications/apply', { method: 'POST', body: JSON.stringify({ beneficiaryId, schemeId, documents }) }),
 };

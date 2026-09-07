@@ -1,3 +1,47 @@
 package com.jansetu.grant.domain;
-import jakarta.persistence.*; import java.math.BigDecimal; import java.time.LocalDate;
-@Entity public class DisbursementStage { @Id @GeneratedValue(strategy=GenerationType.IDENTITY) private Long id; @ManyToOne(optional=false) private GrantRequest application; private int stageNumber; private String stageName; private int percentage; private BigDecimal amount; @Enumerated(EnumType.STRING) private StageStatus status; private LocalDate releaseDate; public Long getId(){return id;} public GrantRequest getApplication(){return application;} public void setApplication(GrantRequest v){application=v;} public int getStageNumber(){return stageNumber;} public void setStageNumber(int v){stageNumber=v;} public String getStageName(){return stageName;} public void setStageName(String v){stageName=v;} public int getPercentage(){return percentage;} public void setPercentage(int v){percentage=v;} public BigDecimal getAmount(){return amount;} public void setAmount(BigDecimal v){amount=v;} public StageStatus getStatus(){return status;} public void setStatus(StageStatus v){status=v;} public LocalDate getReleaseDate(){return releaseDate;} public void setReleaseDate(LocalDate v){releaseDate=v;} }
+
+import jakarta.persistence.*;
+import java.time.LocalDate;
+
+@Entity 
+public class DisbursementStage { 
+  @Id 
+  @GeneratedValue(strategy=GenerationType.IDENTITY) 
+  private Long id; 
+
+  @ManyToOne(optional=false) 
+  private GrantRequest application; 
+
+  private int stageNumber; 
+  private String stageName; 
+  private int percentage; 
+  private String amount; 
+
+  @Enumerated(EnumType.STRING) 
+  private StageStatus status; 
+
+  private LocalDate releaseDate; 
+
+  public Long getId() { return id; } 
+
+  public GrantRequest getApplication() { return application; } 
+  public void setApplication(GrantRequest v) { application = v; } 
+
+  public int getStageNumber() { return stageNumber; } 
+  public void setStageNumber(int v) { stageNumber = v; } 
+
+  public String getStageName() { return stageName; } 
+  public void setStageName(String v) { stageName = v; } 
+
+  public int getPercentage() { return percentage; } 
+  public void setPercentage(int v) { percentage = v; } 
+
+  public String getAmount() { return amount; } 
+  public void setAmount(String v) { amount = v; } 
+
+  public StageStatus getStatus() { return status; } 
+  public void setStatus(StageStatus v) { status = v; } 
+
+  public LocalDate getReleaseDate() { return releaseDate; } 
+  public void setReleaseDate(LocalDate v) { releaseDate = v; } 
+}
