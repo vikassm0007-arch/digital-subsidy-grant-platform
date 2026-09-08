@@ -16,6 +16,8 @@ export const grantApi = {
   getBeneficiaries: () => request('/schemes'),
   validateCriteria: (schemeId, beneficiaryId, documents) => request(`/schemes/${schemeId}/validate-criteria`, { method: 'POST', body: JSON.stringify({ beneficiaryId, documents }) }),
   submitApplication: (beneficiaryId, schemeId, documents) => request('/applications/apply', { method: 'POST', body: JSON.stringify({ beneficiaryId, schemeId, documents }) }),
+  sendOtp: (identifier) => request('/auth/send-otp', { method: 'POST', body: JSON.stringify({ identifier }) }),
+  verifyOtp: (identifier, otp) => request('/auth/verify-otp', { method: 'POST', body: JSON.stringify({ identifier, otp }) }),
   officerLogin: (email, password) => request('/officer/login', { method: 'POST', body: JSON.stringify({ email, password }) }),
   getOfficerQueue: (role) => request(`/officer/applications${role ? `?role=${role}` : ''}`),
   approveApplication: (applicationId, officerRole, remarks = '') => request('/verify/approve', { method: 'POST', body: JSON.stringify({ applicationId, officerRole, remarks }) }),
