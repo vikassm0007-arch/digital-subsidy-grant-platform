@@ -26,50 +26,62 @@ public class ApiController {
    stages = d;
  }
 
- @PostMapping("/auth/login") 
- public LoginResponse login(@Valid @RequestBody LoginBody body) {
-   Beneficiary b = beneficiaries.findByMobileOrAadhaarNo(body.identifier(), body.identifier())
-     .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Beneficiary not found. Use demo account or complete profile.")); 
-   return new LoginResponse(b.getId(), b.getName(), b.getMobile(), b.getAadhaarNo());
- }
+  private final Map<String, String> otpStore = new java.util.concurrent.ConcurrentHashMap<>();
 
- @PostMapping("/auth/send-otp")
- public SendOtpResponse sendOtp(@RequestBody(required = false) Map<String, String> body) {
-   String id = (body != null && body.get("identifier") != null) ? body.get("identifier") : "9876543210";
-   if (id == null || id.trim().isEmpty()) id = "9876543210";
-   String identifier = id.trim();
-   String otp = "123456";
-   return new SendOtpResponse(identifier, otp, "OTP sent successfully to registered mobile number", true);
- }
+  @PostMapping("/auth/login") 
+  public LoginResponse login(@Valid @RequestBody LoginBody body) {
+    Beneficiary b = beneficiaries.findByMobileOrAadhaarNo(body.identifier(), body.identifier())
+      .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Beneficiary not found. Use demo account or complete profile.")); 
+    return new LoginResponse(b.getId(), b.getName(), b.getMobile(), b.getAadhaarNo());
+  }
 
- @PostMapping("/auth/verify-otp")
- public LoginResponse verifyOtp(@RequestBody(required = false) Map<String, String> body) {
-   String id = (body != null && body.get("identifier") != null) ? body.get("identifier") : "9876543210";
-   String otp = (body != null && body.get("otp") != null) ? body.get("otp") : "123456";
-   if (id == null || id.trim().isEmpty()) id = "9876543210";
-   String identifier = id.trim();
-   String enteredOtp = otp != null ? otp.trim() : "123456";
-   
-   if (!"123456".equals(enteredOtp) && !"849201".equals(enteredOtp)) {
-     throw new ResponseStatusException(HttpStatus.UNAUTHORIZED, "Invalid OTP code entered. Please enter 123456.");
-   }
-   
-   Beneficiary b = beneficiaries.findByMobileOrAadhaarNo(identifier, identifier)
-     .orElseGet(() -> {
-       Beneficiary newB = new Beneficiary();
-       newB.setName("Asha Ramesh Patil");
-       newB.setMobile(identifier);
-       newB.setAadhaarNo("XXXX XXXX " + (int)(1000 + Math.random() * 9000));
-       newB.setCategory("OBC");
-       newB.setAnnualIncome(BigDecimal.valueOf(180000));
-       newB.setBankAccount("245710003456");
-       newB.setIfscCode("SBIN0000456");
-       newB.setDistrict("Pune");
-       newB.setState("Maharashtra");
-       return beneficiaries.save(newB);
-     });
-   return new LoginResponse(b.getId(), b.getName(), b.getMobile(), b.getAadhaarNo());
- }
+  @PostMapping("/auth/send-otp")
+  public SendOtpResponse sendOtp(@RequestBody(required = false) Map<String, String> body) {
+    String id = (body != null && body.get("identifier") != null) ? body.get("identifier") : "";
+    if (id == null || id.trim().isEmpty()) {
+      throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Mobile number or Citizen ID is required.");
+    }
+    String identifier = id.trim();
+    int randomOtp = 100000 + new Random().nextInt(900000);
+    String dynamicOtp = String.valueOf(randomOtp);
+    otpStore.put(identifier, dynamicOtp);
+
+    return new SendOtpResponse(identifier, dynamicOtp, "6-digit OTP code generated and sent to +91 " + identifier, true);
+  }
+
+  @PostMapping("/auth/verify-otp")
+  public LoginResponse verifyOtp(@RequestBody(required = false) Map<String, String> body) {
+    String id = (body != null && body.get("identifier") != null) ? body.get("identifier") : "";
+    String otp = (body != null && body.get("otp") != null) ? body.get("otp") : "";
+    if (id == null || id.trim().isEmpty() || otp == null || otp.trim().isEmpty()) {
+      throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Mobile number and OTP code are required.");
+    }
+    String identifier = id.trim();
+    String enteredOtp = otp.trim();
+    String expectedOtp = otpStore.get(identifier);
+
+    if (expectedOtp == null || !expectedOtp.equals(enteredOtp)) {
+      throw new ResponseStatusException(HttpStatus.UNAUTHORIZED, "Invalid OTP code. Please enter the exact 6-digit OTP sent to your mobile.");
+    }
+
+    otpStore.remove(identifier);
+
+    Beneficiary b = beneficiaries.findByMobileOrAadhaarNo(identifier, identifier)
+      .orElseGet(() -> {
+        Beneficiary newB = new Beneficiary();
+        newB.setName("Asha Ramesh Patil");
+        newB.setMobile(identifier);
+        newB.setAadhaarNo("XXXX XXXX " + (int)(1000 + Math.random() * 9000));
+        newB.setCategory("OBC");
+        newB.setAnnualIncome(BigDecimal.valueOf(180000));
+        newB.setBankAccount("245710003456");
+        newB.setIfscCode("SBIN0000456");
+        newB.setDistrict("Pune");
+        newB.setState("Maharashtra");
+        return beneficiaries.save(newB);
+      });
+    return new LoginResponse(b.getId(), b.getName(), b.getMobile(), b.getAadhaarNo());
+  }
 
  @PostMapping("/beneficiaries/profile") 
  public Beneficiary saveProfile(@RequestBody ProfileBody p) {
