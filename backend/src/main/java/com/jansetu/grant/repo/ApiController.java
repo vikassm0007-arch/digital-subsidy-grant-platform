@@ -10,21 +10,25 @@ import java.math.BigDecimal;
 import java.time.LocalDate; 
 import java.util.*;
 
+import com.jansetu.grant.service.SmsService;
+
 @RestController 
 @RequestMapping("/api/v1") 
 @CrossOrigin(origins = {"http://localhost:5173", "http://127.0.0.1:5173"})
 public class ApiController {
- private final BeneficiaryRepository beneficiaries; 
- private final SchemeRepository schemes; 
- private final GrantRequestRepository applications; 
- private final DisbursementStageRepository stages;
+  private final BeneficiaryRepository beneficiaries; 
+  private final SchemeRepository schemes; 
+  private final GrantRequestRepository applications; 
+  private final DisbursementStageRepository stages;
+  private final SmsService smsService;
 
- ApiController(BeneficiaryRepository b, SchemeRepository s, GrantRequestRepository a, DisbursementStageRepository d) {
-   beneficiaries = b; 
-   schemes = s; 
-   applications = a; 
-   stages = d;
- }
+  ApiController(BeneficiaryRepository b, SchemeRepository s, GrantRequestRepository a, DisbursementStageRepository d, SmsService smsService) {
+    beneficiaries = b; 
+    schemes = s; 
+    applications = a; 
+    stages = d;
+    this.smsService = smsService;
+  }
 
   private final Map<String, String> otpStore = new java.util.concurrent.ConcurrentHashMap<>();
 
@@ -33,6 +37,18 @@ public class ApiController {
     Beneficiary b = beneficiaries.findByMobileOrAadhaarNo(body.identifier(), body.identifier())
       .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Beneficiary not found. Use demo account or complete profile.")); 
     return new LoginResponse(b.getId(), b.getName(), b.getMobile(), b.getAadhaarNo());
+  }
+
+  @PostMapping("/auth/configure-sms")
+  public Map<String, String> configureSms(@RequestBody(required = false) Map<String, String> body) {
+    String apiKey = (body != null && body.get("apiKey") != null) ? body.get("apiKey") : "";
+    String provider = (body != null && body.get("provider") != null) ? body.get("provider") : "FAST2SMS";
+    SmsService.setDynamicApiKey(apiKey, provider);
+    Map<String, String> res = new HashMap<>();
+    res.put("status", "configured");
+    res.put("provider", SmsService.getActiveProvider());
+    res.put("message", "SMS Gateway configured for " + provider);
+    return res;
   }
 
   @PostMapping("/auth/send-otp")
@@ -46,7 +62,11 @@ public class ApiController {
     String dynamicOtp = String.valueOf(randomOtp);
     otpStore.put(identifier, dynamicOtp);
 
-    return new SendOtpResponse(identifier, dynamicOtp, "6-digit OTP code generated and sent to +91 " + identifier, true);
+    boolean sent = smsService.sendSms(identifier, dynamicOtp);
+
+    String provider = SmsService.getActiveProvider();
+    String msg = "Verification code dispatched via SMS Gateway (" + provider + ") to +91 " + identifier;
+    return new SendOtpResponse(identifier, dynamicOtp, msg, true);
   }
 
   @PostMapping("/auth/verify-otp")
