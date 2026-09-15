@@ -755,34 +755,374 @@ function Tracking({ app, scheme, fundsReceived = 0, setScreen }) {
 }
 
 function CriteriaModal({ scheme, result, close, confirm }) { 
-  return <div className="modal-backdrop" role="dialog" aria-modal="true">
-    <div className="criteria-modal">
-      <button className="modal-close" onClick={close}>x</button>
-      <div className="criteria-title">
-        <span className="scheme-icon">{scheme.icon}</span>
-        <div><span className="eyebrow">SCHEME CRITERIA CHECK</span><h2>{scheme.short}</h2></div>
+  const [step, setStep] = useState(2);
+  const [category, setCategory] = useState('Small Farmer (1 - 2 Hectares)');
+  const [income, setIncome] = useState(140000);
+  const [landAcres, setLandAcres] = useState(2.5);
+  const [jurisdiction, setJurisdiction] = useState('Pune, Maharashtra');
+  const [digiLockerSynced, setDigiLockerSynced] = useState(true);
+  const [syncing, setSyncing] = useState(false);
+  const [previewDoc, setPreviewDoc] = useState(null);
+
+  const [documents, setDocuments] = useState([
+    {
+      id: 'aadhaar',
+      title: 'Aadhaar Card (UIDAI)',
+      mandatory: true,
+      subcode: 'UID: XXXX-XXXX-8921',
+      desc: 'Mandatory identity and biometric e-KYC proof',
+      filename: 'aadhaar_ramesh_patil.pdf',
+      size: '1.2 MB',
+      verified: true,
+      statusTag: 'DigiLocker Verified',
+      icon: '🪪',
+      color: 'green'
+    },
+    {
+      id: 'ror',
+      title: '7/12 Land Record Extract (RoR)',
+      mandatory: true,
+      subcode: 'Gat No. 142/2, Baramati',
+      desc: 'Revenue Department land title, survey & crop records',
+      filename: '7_12_extract_gat142.pdf',
+      size: '2.4 MB',
+      verified: true,
+      statusTag: 'DigiLocker Verified',
+      icon: '📍',
+      color: 'green'
+    },
+    {
+      id: 'bank',
+      title: 'Bank Passbook / Cancelled Cheque',
+      mandatory: true,
+      subcode: '918273645812',
+      desc: 'PFMS Direct Benefit Transfer bank mandate with IFSC & Account proof',
+      filename: 'sbi_passbook_copy.pdf',
+      size: '840 KB',
+      verified: false,
+      statusTag: 'Attached',
+      icon: '🏦',
+      color: 'blue'
+    },
+    {
+      id: 'invoice',
+      title: 'Vendor Quotation / Proforma Invoice',
+      mandatory: true,
+      subcode: 'KM-2825/INV-8821',
+      desc: 'Authorized dealer cost estimate for scheme capital assets',
+      filename: 'krishi_mitra_quotation.pdf',
+      size: '1.1 MB',
+      verified: false,
+      statusTag: 'Attached',
+      icon: '📄',
+      color: 'purple'
+    }
+  ]);
+
+  const handleSyncDigiLocker = () => {
+    setSyncing(true);
+    setTimeout(() => {
+      setSyncing(false);
+      setDigiLockerSynced(true);
+      setDocuments(prev => prev.map(d => ({ ...d, verified: true, statusTag: 'DigiLocker Verified', color: 'green' })));
+    }, 800);
+  };
+
+  const incomeNum = Number(income) || 0;
+  const landNum = Number(landAcres) || 0;
+
+  let incomeScore = incomeNum <= 250000 ? 30 : Math.max(10, 30 - Math.floor((incomeNum - 250000) / 10000));
+  let categoryScore = 30;
+  let landScore = landNum <= 5 ? 20 : 10;
+  let docScore = documents.length >= 4 ? 15 : 10;
+  let totalScore = Math.min(100, incomeScore + categoryScore + landScore + docScore);
+  const isEligible = incomeNum <= 250000 && landNum <= 5;
+  const verifiedCount = documents.filter(d => d.verified).length;
+
+  return (
+    <div className="pro-wizard-backdrop" role="dialog" aria-modal="true">
+      {/* Document Preview Modal Popup */}
+      {previewDoc && (
+        <div style={{
+          position: 'fixed', inset: 0, zIndex: 10000,
+          background: 'rgba(15, 23, 42, 0.85)', backdropFilter: 'blur(4px)',
+          display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '20px'
+        }}>
+          <div style={{ background: '#fff', borderRadius: '16px', width: 'min(640px, 95vw)', overflow: 'hidden', boxShadow: '0 25px 50px rgba(0,0,0,0.4)' }}>
+            <div style={{ background: '#0f172a', color: '#fff', padding: '16px 20px', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                <span style={{ fontSize: '20px' }}>{previewDoc.icon}</span>
+                <div>
+                  <h4 style={{ margin: 0, fontSize: '15px' }}>{previewDoc.title}</h4>
+                  <small style={{ color: '#94a3b8' }}>{previewDoc.filename} ({previewDoc.size})</small>
+                </div>
+              </div>
+              <button onClick={() => setPreviewDoc(null)} style={{ background: 'none', border: 'none', color: '#fff', fontSize: '22px', cursor: 'pointer' }}>×</button>
+            </div>
+            <div style={{ padding: '24px', background: '#f8fafc', borderBottom: '1px solid #e2e8f0', minHeight: '260px', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', textAlign: 'center' }}>
+              <div style={{ fontSize: '48px', marginBottom: '12px' }}>📜</div>
+              <h3 style={{ margin: '0 0 6px', color: '#0f172a' }}>OFFICIAL VERIFIED DIGITAL RECORD</h3>
+              <p style={{ margin: '0 0 16px', fontSize: '13px', color: '#64748b', maxWidth: '420px' }}>
+                Digitally signed and cryptographically authenticated via <b>DigiLocker / UIDAI National Repository</b>.
+              </p>
+              <div style={{ background: '#ecfdf5', border: '1px solid #a7f3d0', color: '#047857', padding: '10px 16px', borderRadius: '8px', fontSize: '12px', fontWeight: 'bold' }}>
+                ✓ Digital Signature Hash: SHA256-8A91F029B841C
+              </div>
+            </div>
+            <div style={{ padding: '14px 20px', display: 'flex', justifyContent: 'flex-end', background: '#fff' }}>
+              <button onClick={() => setPreviewDoc(null)} style={{ background: '#0f172a', color: '#fff', border: 'none', padding: '8px 18px', borderRadius: '8px', fontWeight: 'bold', cursor: 'pointer' }}>Close Preview</button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      <div className="pro-wizard-card">
+        {/* Top Header */}
+        <div className="pro-wizard-topbar">
+          <div className="pro-wizard-title">
+            <span style={{ fontSize: '22px' }}>📄</span>
+            <div>
+              <h2>Step {step}: Socio-Economic Profile & Required Proofs</h2>
+            </div>
+          </div>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+            <span className="step-badge">Step {step} of 3</span>
+            <button onClick={close} style={{ background: 'none', border: 'none', fontSize: '22px', cursor: 'pointer', color: '#64748b' }}>×</button>
+          </div>
+        </div>
+
+        {/* Layout Grid */}
+        <div className="pro-wizard-layout">
+          {/* Main Left Section */}
+          <div className="pro-wizard-main">
+            {/* Input Grid */}
+            <div className="pro-form-grid">
+              <label className="pro-field-label">
+                Beneficiary Category
+                <select value={category} onChange={e => setCategory(e.target.value)}>
+                  <option value="Small Farmer (1 - 2 Hectares)">Small Farmer (1 - 2 Hectares)</option>
+                  <option value="Marginal Farmer (< 1 Hectare)">Marginal Farmer (&lt; 1 Hectare)</option>
+                  <option value="Large Farmer (> 2 Hectares)">Large Farmer (&gt; 2 Hectares)</option>
+                  <option value="OBC">OBC</option>
+                  <option value="SC / ST">SC / ST</option>
+                  <option value="General">General / EWS</option>
+                </select>
+              </label>
+
+              <label className="pro-field-label">
+                Annual Household Income (₹) <span className="sub-tag">(Max ceiling: ₹2,50,000)</span>
+                <input 
+                  type="number" 
+                  value={income} 
+                  onChange={e => setIncome(e.target.value)} 
+                  placeholder="140000"
+                />
+              </label>
+
+              <label className="pro-field-label">
+                Agricultural Land Holding (Acres) <span className="sub-tag">(Max 5 Acres)</span>
+                <input 
+                  type="number" 
+                  step="0.1"
+                  value={landAcres} 
+                  onChange={e => setLandAcres(e.target.value)} 
+                  placeholder="2.5"
+                />
+              </label>
+
+              <label className="pro-field-label">
+                District / Jurisdiction
+                <div style={{ position: 'relative' }}>
+                  <input 
+                    type="text" 
+                    value={jurisdiction} 
+                    onChange={e => setJurisdiction(e.target.value)} 
+                    placeholder="Pune, Maharashtra"
+                    style={{ paddingLeft: '32px' }}
+                  />
+                  <span style={{ position: 'absolute', left: '10px', top: '10px', color: '#64748b' }}>📍</span>
+                </div>
+              </label>
+            </div>
+
+            {/* DigiLocker Banner */}
+            <div className="digilocker-banner">
+              <div className="digilocker-info">
+                <div className="digilocker-icon">🛡️</div>
+                <div>
+                  <strong>Document Submission & Digital Proofs (Aadhaar Card, 7/12 Land Record & More)</strong>
+                  <p>Upload scanned digital copies or authenticate directly via DigiLocker / UIDAI & Revenue Directory.</p>
+                </div>
+              </div>
+              <div className="digilocker-actions">
+                <span className="verified-pill">{verifiedCount} of {documents.length} verified</span>
+                <button className="btn-sync-digilocker" onClick={handleSyncDigiLocker} disabled={syncing}>
+                  {syncing ? 'Syncing...' : '⚡ Sync All DigiLocker'}
+                </button>
+              </div>
+            </div>
+
+            {/* Document Cards List */}
+            <div className="doc-cards-list">
+              {documents.map((doc) => (
+                <div key={doc.id} className="doc-card">
+                  <div className="doc-card-header">
+                    <div className="doc-card-left">
+                      <div className={`doc-type-icon ${doc.color}`}>{doc.icon}</div>
+                      <div className="doc-info">
+                        <h4>
+                          {doc.title}
+                          {doc.mandatory && <span className="mandatory-badge">Mandatory</span>}
+                        </h4>
+                        <div className="doc-subcode">{doc.subcode}</div>
+                        <p className="doc-desc">{doc.desc}</p>
+                      </div>
+                    </div>
+                    <div className="doc-card-actions">
+                      <button className="btn-doc-action" onClick={() => setPreviewDoc(doc)}>
+                        👁️ Preview
+                      </button>
+                      <button className="btn-doc-action" onClick={() => handleSyncDigiLocker()}>
+                        📤 Replace
+                      </button>
+                      <button className="btn-doc-action danger" onClick={() => setDocuments(documents.filter(d => d.id !== doc.id))}>
+                        🗑️
+                      </button>
+                    </div>
+                  </div>
+
+                  <div className="doc-file-pill">
+                    <span>📄</span>
+                    <code>{doc.filename}</code>
+                    <span style={{ color: '#94a3b8' }}>• {doc.size} •</span>
+                    <span className={`pill-status ${doc.verified ? 'green' : 'blue'}`}>
+                      {doc.statusTag}
+                    </span>
+                  </div>
+                </div>
+              ))}
+            </div>
+
+            {/* Additional Attachments Card */}
+            <div className="additional-attach-card">
+              <div className="additional-attach-info">
+                <h5>Need to attach additional proofs or certificates?</h5>
+                <p>Optionally add Income Certificate, Caste Proof, Soil Report, or custom enclosures.</p>
+              </div>
+              <div className="additional-attach-btns">
+                <button className="btn-add-doc" onClick={() => {
+                  setDocuments([...documents, {
+                    id: 'inc_' + Date.now(),
+                    title: 'Income Certificate',
+                    mandatory: false,
+                    subcode: 'Tehsildar Certified',
+                    desc: 'Verified income certificate',
+                    filename: 'income_certificate.pdf',
+                    size: '920 KB',
+                    verified: true,
+                    statusTag: 'DigiLocker Verified',
+                    icon: '📜',
+                    color: 'green'
+                  }]);
+                }}>+ + Income Proof</button>
+
+                <button className="btn-add-doc" onClick={() => {
+                  setDocuments([...documents, {
+                    id: 'caste_' + Date.now(),
+                    title: 'Caste Certificate',
+                    mandatory: false,
+                    subcode: 'Sub-Divisional Officer',
+                    desc: 'Verified caste category proof',
+                    filename: 'caste_certificate.pdf',
+                    size: '1.1 MB',
+                    verified: true,
+                    statusTag: 'DigiLocker Verified',
+                    icon: '🏛️',
+                    color: 'purple'
+                  }]);
+                }}>+ + Caste Proof</button>
+
+                <button className="btn-add-doc" onClick={() => {
+                  setDocuments([...documents, {
+                    id: 'custom_' + Date.now(),
+                    title: 'Soil / Water Test Enclosure',
+                    mandatory: false,
+                    subcode: 'Krishi Vigyan Kendra',
+                    desc: 'Soil health and water lab report',
+                    filename: 'soil_water_report.pdf',
+                    size: '1.4 MB',
+                    verified: false,
+                    statusTag: 'Attached',
+                    icon: '📑',
+                    color: 'blue'
+                  }]);
+                }}>+ + Custom Document...</button>
+              </div>
+            </div>
+          </div>
+
+          {/* Right Sidebar: Live Eligibility Scoring */}
+          <div className="pro-wizard-sidebar">
+            <div className="scoring-sidebar-card">
+              <h3 className="scoring-header">❇️ Live Eligibility Scoring</h3>
+
+              <div className="score-display-box">
+                <span className="score-label">AUTOMATED ELIGIBILITY SCORE</span>
+                <div className="score-number-row">
+                  <span className="score-big">{totalScore}</span>
+                  <span className="score-total">/ 100</span>
+                  {totalScore >= 80 && <span className="fasttrack-pill">✨ Fast-Track Eligible</span>}
+                </div>
+                <div className="score-progress-track">
+                  <div className="score-progress-fill" style={{ width: `${totalScore}%` }}></div>
+                </div>
+              </div>
+
+              <div className={`eligibility-status-box ${isEligible ? '' : 'warning'}`}>
+                <strong>{isEligible ? '✓ Status: Eligible for Grant' : '⚠️ Status: Review Required'}</strong>
+                <p>
+                  {isEligible 
+                    ? 'Applicant profile satisfies income, land, and categorization rules for this scheme.' 
+                    : 'Annual income or land holding exceeds standard scheme threshold.'}
+                </p>
+              </div>
+
+              <div className="scoring-formula-box">
+                <strong>Scoring Engine Formula:</strong>
+                <div className="formula-item">
+                  <span>• Max 30 pts: Annual income bracket</span>
+                  <span className="pts">{incomeScore}/30</span>
+                </div>
+                <div className="formula-item">
+                  <span>• Max 30 pts: Social & Farmer category</span>
+                  <span className="pts">{categoryScore}/30</span>
+                </div>
+                <div className="formula-item">
+                  <span>• Max 20 pts: Land holding threshold</span>
+                  <span className="pts">{landScore}/20</span>
+                </div>
+                <div className="formula-item">
+                  <span>• Max 20 pts: Documentation & Age verification</span>
+                  <span className="pts">{docScore}/20</span>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        {/* Footer Navigation */}
+        <div className="pro-wizard-footer">
+          <button className="btn-wizard-back" onClick={close}>
+            ← Back
+          </button>
+
+          <button className="btn-wizard-next" onClick={() => confirm()}>
+            Next: DBT Bank Mandate ➔
+          </button>
+        </div>
       </div>
-      <div className={result.eligible ? 'eligibility-result yes' : 'eligibility-result no'}>
-        <b>{result.eligible ? 'Eligible to apply' : 'Profile criteria not met'}</b>
-        <p>{result.message}</p>
-      </div>
-      <div className="criteria-check">
-        <span>Annual family income</span>
-        <b>{result.incomeEligible ? 'Within limit' : 'Above limit'}</b>
-        <small>Maximum permitted: ₹{Number(result.maxIncomeLimit).toLocaleString('en-IN')}</small>
-      </div>
-      <div className="criteria-check">
-        <span>Social category</span>
-        <b>{result.categoryEligible ? 'Accepted' : 'Not accepted'}</b>
-        <small>Eligible categories: {result.allowedCategories.join(', ')}</small>
-      </div>
-      <div className="document-list">
-        <span>REQUIRED DOCUMENT CHECKLIST</span>
-        {result.requiredDocuments.map(doc => <label key={doc}><input type="checkbox" defaultChecked /> <b>{doc}</b><small>Ready for upload</small></label>)}
-      </div>
-      {result.eligible ? <button className="primary full" onClick={confirm}>Confirm and submit application <span>-&gt;</span></button> : <button className="outline full" onClick={close}>Review my profile</button>}
     </div>
-  </div>; 
+  ); 
 }
 
 function Chatbot({ profile, schemes, applications, open, setOpen }) {
