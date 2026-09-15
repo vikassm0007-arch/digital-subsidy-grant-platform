@@ -1647,9 +1647,45 @@ function OfficerActionModal({ app, officer, remarks, setRemarks, onApprove, onRe
   const [landChecked, setLandChecked] = useState(true);
   const [incomeChecked, setIncomeChecked] = useState(true);
   const [identityChecked, setIdentityChecked] = useState(true);
+  const [viewingDoc, setViewingDoc] = useState(null);
 
   return (
     <div className="modal-backdrop" role="dialog" aria-modal="true">
+      {/* Officer Document Inspection Popup Modal */}
+      {viewingDoc && (
+        <div style={{
+          position: 'fixed', inset: 0, zIndex: 10000,
+          background: 'rgba(15, 23, 42, 0.85)', backdropFilter: 'blur(4px)',
+          display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '20px'
+        }}>
+          <div style={{ background: '#fff', borderRadius: '16px', width: 'min(640px, 95vw)', overflow: 'hidden', boxShadow: '0 25px 50px rgba(0,0,0,0.4)' }}>
+            <div style={{ background: '#0f172a', color: '#fff', padding: '16px 20px', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                <span style={{ fontSize: '20px' }}>{viewingDoc.icon}</span>
+                <div>
+                  <h4 style={{ margin: 0, fontSize: '15px' }}>{viewingDoc.title}</h4>
+                  <small style={{ color: '#94a3b8' }}>{viewingDoc.filename} ({viewingDoc.size})</small>
+                </div>
+              </div>
+              <button onClick={() => setViewingDoc(null)} style={{ background: 'none', border: 'none', color: '#fff', fontSize: '22px', cursor: 'pointer' }}>×</button>
+            </div>
+            <div style={{ padding: '24px', background: '#f8fafc', borderBottom: '1px solid #e2e8f0', minHeight: '260px', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', textAlign: 'center' }}>
+              <div style={{ fontSize: '48px', marginBottom: '12px' }}>📜</div>
+              <h3 style={{ margin: '0 0 6px', color: '#0f172a' }}>OFFICIAL VERIFIED DIGITAL RECORD</h3>
+              <p style={{ margin: '0 0 12px', fontSize: '13px', color: '#64748b', maxWidth: '440px' }}>
+                Submitted by <b>{app.beneficiaryName}</b> (Aadhaar: {app.beneficiaryAadhaar}). Cryptographically authenticated via <b>DigiLocker / UIDAI & State Land Records Repository</b>.
+              </p>
+              <div style={{ background: '#ecfdf5', border: '1px solid #a7f3d0', color: '#047857', padding: '10px 16px', borderRadius: '8px', fontSize: '12px', fontWeight: 'bold' }}>
+                ✓ Official Seal & E-Verification Hash: SHA256-DIGILOCKER-{app.id}-VERIFIED
+              </div>
+            </div>
+            <div style={{ padding: '14px 20px', display: 'flex', justifyContent: 'flex-end', background: '#fff' }}>
+              <button onClick={() => setViewingDoc(null)} style={{ background: '#0f172a', color: '#fff', border: 'none', padding: '8px 18px', borderRadius: '8px', fontWeight: 'bold', cursor: 'pointer' }}>Close Inspection</button>
+            </div>
+          </div>
+        </div>
+      )}
+
       <div className="admin-modal-card">
         <div className="admin-modal-header" style={{ borderLeft: `6px solid ${officer.color}` }}>
           <div>
@@ -1674,6 +1710,130 @@ function OfficerActionModal({ app, officer, remarks, setRemarks, onApprove, onRe
               <div><small>BANK ACCOUNT</small><b>{app.beneficiaryBank} ({app.beneficiaryIfsc})</b></div>
               <div><small>DISTRICT / STATE</small><b>{app.beneficiaryDistrict}, {app.beneficiaryState}</b></div>
               <div><small>CURRENT WORKFLOW STATE</small><b><StatusBadge status={app.status} /></b></div>
+            </div>
+          </div>
+
+          {/* Submitted DigiLocker Verified Proofs / Documents Card */}
+          <div className="inspection-section" style={{ background: '#f8fafc', border: '1px solid #cbd5e1' }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '14px' }}>
+              <h4 style={{ margin: 0, fontSize: '15px', color: '#0f172a', display: 'flex', alignItems: 'center', gap: '8px' }}>
+                📁 Submitted & DigiLocker Verified Proofs / Documents
+              </h4>
+              <span className="verified-pill">4 of 4 Verified via DigiLocker</span>
+            </div>
+
+            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px' }}>
+              {/* Card 1: Aadhaar Card */}
+              <div style={{ background: '#fff', border: '1px solid #e2e8f0', borderRadius: '10px', padding: '14px', display: 'flex', flexDirection: 'column', gap: '8px' }}>
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
+                  <div style={{ display: 'flex', gap: '10px', alignItems: 'center' }}>
+                    <span style={{ fontSize: '24px' }}>🪪</span>
+                    <div>
+                      <b style={{ fontSize: '13px', color: '#0f172a', display: 'block' }}>Aadhaar Card (UIDAI)</b>
+                      <small style={{ color: '#64748b', fontSize: '11px' }}>UID: {app.beneficiaryAadhaar || 'XXXX-XXXX-4812'}</small>
+                    </div>
+                  </div>
+                  <span className="pill-status green">DigiLocker Verified</span>
+                </div>
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', background: '#f8fafc', padding: '6px 10px', borderRadius: '6px', fontSize: '11px', border: '1px solid #edf2f7' }}>
+                  <span style={{ color: '#475569' }}>📄 aadhaar_ramesh_patil.pdf (1.2 MB)</span>
+                  <button 
+                    onClick={() => setViewingDoc({
+                      title: 'Aadhaar Card (UIDAI)',
+                      filename: 'aadhaar_ramesh_patil.pdf',
+                      size: '1.2 MB',
+                      icon: '🪪'
+                    })}
+                    style={{ background: '#0284c7', color: '#fff', border: 'none', padding: '4px 10px', borderRadius: '4px', fontSize: '11px', fontWeight: 'bold', cursor: 'pointer' }}
+                  >
+                    👁️ Inspect
+                  </button>
+                </div>
+              </div>
+
+              {/* Card 2: 7/12 Land Record */}
+              <div style={{ background: '#fff', border: '1px solid #e2e8f0', borderRadius: '10px', padding: '14px', display: 'flex', flexDirection: 'column', gap: '8px' }}>
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
+                  <div style={{ display: 'flex', gap: '10px', alignItems: 'center' }}>
+                    <span style={{ fontSize: '24px' }}>📍</span>
+                    <div>
+                      <b style={{ fontSize: '13px', color: '#0f172a', display: 'block' }}>7/12 Land Record Extract (RoR)</b>
+                      <small style={{ color: '#64748b', fontSize: '11px' }}>Gat No. 142/2, Baramati</small>
+                    </div>
+                  </div>
+                  <span className="pill-status green">DigiLocker Verified</span>
+                </div>
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', background: '#f8fafc', padding: '6px 10px', borderRadius: '6px', fontSize: '11px', border: '1px solid #edf2f7' }}>
+                  <span style={{ color: '#475569' }}>📄 7_12_extract_gat142.pdf (2.4 MB)</span>
+                  <button 
+                    onClick={() => setViewingDoc({
+                      title: '7/12 Land Record Extract (RoR)',
+                      filename: '7_12_extract_gat142.pdf',
+                      size: '2.4 MB',
+                      icon: '📍'
+                    })}
+                    style={{ background: '#0284c7', color: '#fff', border: 'none', padding: '4px 10px', borderRadius: '4px', fontSize: '11px', fontWeight: 'bold', cursor: 'pointer' }}
+                  >
+                    👁️ Inspect
+                  </button>
+                </div>
+              </div>
+
+              {/* Card 3: Bank Passbook */}
+              <div style={{ background: '#fff', border: '1px solid #e2e8f0', borderRadius: '10px', padding: '14px', display: 'flex', flexDirection: 'column', gap: '8px' }}>
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
+                  <div style={{ display: 'flex', gap: '10px', alignItems: 'center' }}>
+                    <span style={{ fontSize: '24px' }}>🏦</span>
+                    <div>
+                      <b style={{ fontSize: '13px', color: '#0f172a', display: 'block' }}>Bank Passbook / Mandate</b>
+                      <small style={{ color: '#64748b', fontSize: '11px' }}>Acc: {app.beneficiaryBank || '245710003456'}</small>
+                    </div>
+                  </div>
+                  <span className="pill-status green">DigiLocker Verified</span>
+                </div>
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', background: '#f8fafc', padding: '6px 10px', borderRadius: '6px', fontSize: '11px', border: '1px solid #edf2f7' }}>
+                  <span style={{ color: '#475569' }}>📄 sbi_passbook_copy.pdf (840 KB)</span>
+                  <button 
+                    onClick={() => setViewingDoc({
+                      title: 'Bank Passbook / Mandate',
+                      filename: 'sbi_passbook_copy.pdf',
+                      size: '840 KB',
+                      icon: '🏦'
+                    })}
+                    style={{ background: '#0284c7', color: '#fff', border: 'none', padding: '4px 10px', borderRadius: '4px', fontSize: '11px', fontWeight: 'bold', cursor: 'pointer' }}
+                  >
+                    👁️ Inspect
+                  </button>
+                </div>
+              </div>
+
+              {/* Card 4: Vendor Invoice / Quotation */}
+              <div style={{ background: '#fff', border: '1px solid #e2e8f0', borderRadius: '10px', padding: '14px', display: 'flex', flexDirection: 'column', gap: '8px' }}>
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
+                  <div style={{ display: 'flex', gap: '10px', alignItems: 'center' }}>
+                    <span style={{ fontSize: '24px' }}>📄</span>
+                    <div>
+                      <b style={{ fontSize: '13px', color: '#0f172a', display: 'block' }}>Vendor Quotation / Invoice</b>
+                      <small style={{ color: '#64748b', fontSize: '11px' }}>Ref: KM-2825/INV-8821</small>
+                    </div>
+                  </div>
+                  <span className="pill-status green">DigiLocker Verified</span>
+                </div>
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', background: '#f8fafc', padding: '6px 10px', borderRadius: '6px', fontSize: '11px', border: '1px solid #edf2f7' }}>
+                  <span style={{ color: '#475569' }}>📄 krishi_mitra_quotation.pdf (1.1 MB)</span>
+                  <button 
+                    onClick={() => setViewingDoc({
+                      title: 'Vendor Quotation / Invoice',
+                      filename: 'krishi_mitra_quotation.pdf',
+                      size: '1.1 MB',
+                      icon: '📄'
+                    })}
+                    style={{ background: '#0284c7', color: '#fff', border: 'none', padding: '4px 10px', borderRadius: '4px', fontSize: '11px', fontWeight: 'bold', cursor: 'pointer' }}
+                  >
+                    👁️ Inspect
+                  </button>
+                </div>
+              </div>
             </div>
           </div>
 
