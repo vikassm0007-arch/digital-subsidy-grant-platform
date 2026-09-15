@@ -28,26 +28,70 @@ public class ApiController {
 
   @PostMapping("/auth/login") 
   public LoginResponse login(@RequestBody(required = false) Map<String, String> body) {
-    String id = (body != null && body.get("identifier") != null) ? body.get("identifier") : "";
-    if (id == null || id.trim().isEmpty()) {
-      throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Mobile number or Citizen ID is required.");
+    String email = body != null && body.get("email") != null ? body.get("email").trim() : "";
+    String name = body != null && body.get("name") != null ? body.get("name").trim() : "";
+    String identifier = body != null && body.get("identifier") != null ? body.get("identifier").trim() : "";
+
+    Beneficiary b = null;
+    if (!email.isEmpty() || !name.isEmpty()) {
+      b = beneficiaries.findByEmailIgnoreCaseOrNameIgnoreCase(email, name).orElse(null);
+      if (b == null && !email.isEmpty()) {
+        b = beneficiaries.findByEmailIgnoreCase(email).orElse(null);
+      }
+      if (b == null && !name.isEmpty()) {
+        b = beneficiaries.findByNameIgnoreCase(name).orElse(null);
+      }
     }
-    String identifier = id.trim();
-    Beneficiary b = beneficiaries.findByMobileOrAadhaarNo(identifier, identifier)
-      .orElseGet(() -> {
-        Beneficiary newB = new Beneficiary();
-        newB.setName("Asha Ramesh Patil");
-        newB.setMobile(identifier);
-        newB.setAadhaarNo("XXXX XXXX " + (int)(1000 + Math.random() * 9000));
-        newB.setCategory("OBC");
-        newB.setAnnualIncome(BigDecimal.valueOf(180000));
-        newB.setBankAccount("245710003456");
-        newB.setIfscCode("SBIN0000456");
-        newB.setDistrict("Pune");
-        newB.setState("Maharashtra");
-        return beneficiaries.save(newB);
-      });
-    return new LoginResponse(b.getId(), b.getName(), b.getMobile(), b.getAadhaarNo());
+    if (b == null && !identifier.isEmpty()) {
+      b = beneficiaries.findByMobileOrAadhaarNo(identifier, identifier).orElse(null);
+    }
+
+    if (b == null) {
+      throw new ResponseStatusException(HttpStatus.NOT_FOUND, "No beneficiary account found matching provided details. Please switch to the Register tab to create your profile.");
+    }
+    return LoginResponse.of(b);
+  }
+
+  @PostMapping("/auth/register")
+  public LoginResponse register(@RequestBody(required = false) Map<String, String> body) {
+    if (body == null || body.get("name") == null || body.get("name").trim().isEmpty()) {
+      throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Full name is required.");
+    }
+    if (body.get("email") == null || body.get("email").trim().isEmpty()) {
+      throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Gmail / Email address is required.");
+    }
+    String name = body.get("name").trim();
+    String email = body.get("email").trim();
+    String mobile = body.get("mobile") != null && !body.get("mobile").trim().isEmpty() ? body.get("mobile").trim() : ("9" + (int)(100000000 + Math.random() * 900000000));
+    String category = body.get("category") != null && !body.get("category").trim().isEmpty() ? body.get("category").trim() : "OBC";
+    String district = body.get("district") != null && !body.get("district").trim().isEmpty() ? body.get("district").trim() : "Pune";
+    String state = body.get("state") != null && !body.get("state").trim().isEmpty() ? body.get("state").trim() : "Maharashtra";
+    String bankAccount = body.get("bankAccount") != null && !body.get("bankAccount").trim().isEmpty() ? body.get("bankAccount").trim() : "245710003456";
+    String ifscCode = body.get("ifscCode") != null && !body.get("ifscCode").trim().isEmpty() ? body.get("ifscCode").trim() : "SBIN0000456";
+    
+    BigDecimal income = BigDecimal.valueOf(180000);
+    try {
+      if (body.get("annualIncome") != null && !body.get("annualIncome").trim().isEmpty()) {
+        income = new BigDecimal(body.get("annualIncome").trim().replaceAll("[^0-9.]", ""));
+      }
+    } catch (Exception ignored) {}
+
+    Beneficiary b = beneficiaries.findByEmailIgnoreCase(email)
+      .orElseGet(() -> beneficiaries.findByNameIgnoreCase(name).orElse(new Beneficiary()));
+
+    b.setName(name);
+    b.setEmail(email);
+    if (b.getMobile() == null || b.getMobile().isEmpty()) b.setMobile(mobile);
+    if (b.getAadhaarNo() == null || b.getAadhaarNo().isEmpty()) b.setAadhaarNo("XXXX XXXX " + (int)(1000 + Math.random() * 9000));
+    b.setCategory(category);
+    b.setAnnualIncome(income);
+    b.setDistrict(district);
+    b.setState(state);
+    b.setBankAccount(bankAccount);
+    b.setIfscCode(ifscCode);
+
+    b = beneficiaries.save(b);
+    return LoginResponse.of(b);
   }
 
  @PostMapping("/beneficiaries/profile") 
@@ -271,7 +315,15 @@ public class ApiController {
   }
 
   record LoginBody(@NotBlank String identifier) {} 
-  record LoginResponse(Long id, String name, String mobile, String aadhaarNo) {} 
+  record LoginResponse(Long id, String name, String email, String mobile, String aadhaarNo, String category, BigDecimal annualIncome, String district, String state, String bankAccount, String ifscCode) {
+    static LoginResponse of(Beneficiary b) {
+      return new LoginResponse(
+        b.getId(), b.getName(), b.getEmail(), b.getMobile(), b.getAadhaarNo(),
+        b.getCategory(), b.getAnnualIncome(), b.getDistrict(), b.getState(),
+        b.getBankAccount(), b.getIfscCode()
+      );
+    }
+  } 
 
   record ProfileBody(Long id, String name, String mobile, String aadhaarNo, String category, BigDecimal annualIncome, String bankAccount, String ifscCode, String district, String state) {} 
   record ValidationBody(Long beneficiaryId, Set<String> documents) {} 

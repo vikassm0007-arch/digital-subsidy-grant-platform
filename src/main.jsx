@@ -185,7 +185,30 @@ function App() {
 
   if (screen === 'login') return (
     <div className="portal-container">
-      <Login login={login} setLogin={setLogin} demo={demo} setPortalMode={setPortalMode} enter={() => { setProfile(p => ({ ...p, mobile: login })); setScreen('profile'); }} />
+      <Login 
+        login={login} 
+        setLogin={setLogin} 
+        demo={demo} 
+        setPortalMode={setPortalMode} 
+        enter={(userData) => { 
+          if (userData) {
+            setProfile(p => ({
+              ...p,
+              id: userData.id || p.id,
+              name: userData.name || p.name,
+              email: userData.email || p.email,
+              mobile: userData.mobile || p.mobile,
+              category: userData.category || p.category,
+              income: userData.annualIncome || p.income,
+              district: userData.district || p.district,
+              state: userData.state || p.state,
+              bank: userData.bankAccount || p.bank,
+              ifsc: userData.ifscCode || p.ifsc
+            }));
+          }
+          setScreen('dashboard'); 
+        }} 
+      />
     </div>
   );
 
@@ -211,26 +234,68 @@ function App() {
 }
 
 function Login({ login, setLogin, demo, setPortalMode, enter }) { 
+  const [mode, setMode] = useState('signin'); // 'signin' or 'register'
+  const [nameInput, setNameInput] = useState('');
+  const [emailInput, setEmailInput] = useState('');
+  const [category, setCategory] = useState('OBC');
+  const [district, setDistrict] = useState('Pune');
+  const [stateName, setStateName] = useState('Maharashtra');
+  const [income, setIncome] = useState('180000');
+  const [bank, setBank] = useState('245710003456');
+  const [ifsc, setIfsc] = useState('SBIN0000456');
   const [errorMsg, setErrorMsg] = useState('');
   const [loading, setLoading] = useState(false);
 
-  const handleSimpleLogin = async (e) => {
+  const handleSignIn = async (e) => {
     if (e) e.preventDefault();
     setErrorMsg('');
-    const targetMobile = login.trim();
-    if (!targetMobile) {
-      setErrorMsg('Please enter your mobile number or Aadhaar ID.');
+    const targetEmail = emailInput.trim();
+    const targetName = nameInput.trim();
+    if (!targetEmail && !targetName) {
+      setErrorMsg('Please enter your Name or Gmail address to sign in.');
       return;
     }
 
     setLoading(true);
     try {
-      await grantApi.login(targetMobile);
+      const res = await grantApi.login(targetName, targetEmail);
       setLoading(false);
-      enter();
-    } catch {
+      enter(res);
+    } catch (err) {
       setLoading(false);
-      enter();
+      setErrorMsg(err.message || 'Account not found. Please click "Register" to create your profile.');
+    }
+  };
+
+  const handleRegister = async (e) => {
+    if (e) e.preventDefault();
+    setErrorMsg('');
+    if (!nameInput.trim()) {
+      setErrorMsg('Full name is required for registration.');
+      return;
+    }
+    if (!emailInput.trim()) {
+      setErrorMsg('Gmail / Email address is required for registration.');
+      return;
+    }
+
+    setLoading(true);
+    try {
+      const res = await grantApi.register({
+        name: nameInput.trim(),
+        email: emailInput.trim(),
+        category,
+        district,
+        state: stateName,
+        annualIncome: income,
+        bankAccount: bank,
+        ifscCode: ifsc
+      });
+      setLoading(false);
+      enter(res);
+    } catch (err) {
+      setLoading(false);
+      setErrorMsg(err.message || 'Registration failed. Please check your details and try again.');
     }
   };
 
@@ -258,33 +323,186 @@ function Login({ login, setLogin, demo, setPortalMode, enter }) {
       <section className="login-panel">
         <div className="login-form">
           <div className="brand mobile-brand"><span className="brand-mark">✦</span>JanSetu</div>
-          <div>
-            <span className="eyebrow">CITIZEN PORTAL LOGIN</span>
-            <h2>Sign in to portal</h2>
-            <p className="muted">Enter your mobile number or Citizen ID to sign in directly.</p>
+          
+          {/* Mode Switcher Tabs */}
+          <div style={{ display: 'flex', background: '#f1f5f9', padding: '4px', borderRadius: '10px', marginBottom: '16px' }}>
+            <button 
+              type="button"
+              onClick={() => { setMode('signin'); setErrorMsg(''); }}
+              style={{
+                flex: 1,
+                padding: '8px 12px',
+                borderRadius: '8px',
+                border: 'none',
+                background: mode === 'signin' ? '#fff' : 'transparent',
+                color: mode === 'signin' ? '#0f172a' : '#64748b',
+                fontWeight: mode === 'signin' ? 'bold' : 'normal',
+                fontSize: '13px',
+                cursor: 'pointer',
+                boxShadow: mode === 'signin' ? '0 1px 3px rgba(0,0,0,0.1)' : 'none',
+                transition: 'all 0.2s'
+              }}
+            >
+              🔑 Sign In (Name & Gmail)
+            </button>
+            <button 
+              type="button"
+              onClick={() => { setMode('register'); setErrorMsg(''); }}
+              style={{
+                flex: 1,
+                padding: '8px 12px',
+                borderRadius: '8px',
+                border: 'none',
+                background: mode === 'register' ? '#fff' : 'transparent',
+                color: mode === 'register' ? '#0f172a' : '#64748b',
+                fontWeight: mode === 'register' ? 'bold' : 'normal',
+                fontSize: '13px',
+                cursor: 'pointer',
+                boxShadow: mode === 'register' ? '0 1px 3px rgba(0,0,0,0.1)' : 'none',
+                transition: 'all 0.2s'
+              }}
+            >
+              📝 Register Profile
+            </button>
           </div>
 
-          <form onSubmit={handleSimpleLogin} style={{ display: 'grid', gap: '14px' }}>
-            <label>
-              Mobile number or Aadhaar / Citizen ID
-              <input 
-                value={login} 
-                onChange={e => setLogin(e.target.value)} 
-                placeholder="Enter mobile number (e.g. 9876543210)" 
-                required 
-                autoFocus
-              />
-            </label>
-            {errorMsg && <div style={{ color: '#dc2626', fontSize: '12px', background: '#fef2f2', padding: '8px 12px', borderRadius: '6px' }}>⚠️ {errorMsg}</div>}
-            <button type="submit" className="primary full" disabled={loading}>
-              {loading ? 'Signing in...' : 'Sign In ➔'}
-            </button>
-          </form>
+          <div>
+            <span className="eyebrow">CITIZEN AUTHENTICATION</span>
+            <h2>{mode === 'signin' ? 'Sign in to portal' : 'Register citizen profile'}</h2>
+            <p className="muted">
+              {mode === 'signin' 
+                ? 'Enter your Name and Gmail address to access your subsidy portal.' 
+                : 'Create your beneficiary profile to apply for 50+ government schemes.'}
+            </p>
+          </div>
+
+          {mode === 'signin' ? (
+            <form onSubmit={handleSignIn} style={{ display: 'grid', gap: '14px' }}>
+              <label>
+                Full Name
+                <input 
+                  type="text"
+                  value={nameInput} 
+                  onChange={e => setNameInput(e.target.value)} 
+                  placeholder="Enter full name (e.g. Asha Ramesh Patil)" 
+                  autoFocus
+                />
+              </label>
+              <label>
+                Gmail / Email Address
+                <input 
+                  type="email"
+                  value={emailInput} 
+                  onChange={e => setEmailInput(e.target.value)} 
+                  placeholder="Enter Gmail address (e.g. asha.patil@gmail.com)" 
+                  required
+                />
+              </label>
+              {errorMsg && <div style={{ color: '#dc2626', fontSize: '12px', background: '#fef2f2', padding: '8px 12px', borderRadius: '6px' }}>⚠️ {errorMsg}</div>}
+              <button type="submit" className="primary full" disabled={loading}>
+                {loading ? 'Authenticating...' : 'Sign In to Portal ➔'}
+              </button>
+            </form>
+          ) : (
+            <form onSubmit={handleRegister} style={{ display: 'grid', gap: '12px' }}>
+              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '10px' }}>
+                <label>
+                  Full Name *
+                  <input 
+                    type="text"
+                    value={nameInput} 
+                    onChange={e => setNameInput(e.target.value)} 
+                    placeholder="Full Name" 
+                    required 
+                  />
+                </label>
+                <label>
+                  Gmail / Email *
+                  <input 
+                    type="email"
+                    value={emailInput} 
+                    onChange={e => setEmailInput(e.target.value)} 
+                    placeholder="name@gmail.com" 
+                    required 
+                  />
+                </label>
+              </div>
+
+              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '10px' }}>
+                <label>
+                  Category
+                  <select value={category} onChange={e => setCategory(e.target.value)}>
+                    <option value="OBC">OBC</option>
+                    <option value="General">General</option>
+                    <option value="SC">SC</option>
+                    <option value="ST">ST</option>
+                    <option value="Minorities">Minorities</option>
+                  </select>
+                </label>
+                <label>
+                  Annual Income (₹)
+                  <input 
+                    type="number"
+                    value={income} 
+                    onChange={e => setIncome(e.target.value)} 
+                    placeholder="180000" 
+                  />
+                </label>
+              </div>
+
+              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '10px' }}>
+                <label>
+                  District
+                  <input 
+                    type="text"
+                    value={district} 
+                    onChange={e => setDistrict(e.target.value)} 
+                    placeholder="District (e.g. Pune)" 
+                  />
+                </label>
+                <label>
+                  State
+                  <input 
+                    type="text"
+                    value={stateName} 
+                    onChange={e => setStateName(e.target.value)} 
+                    placeholder="State (e.g. Maharashtra)" 
+                  />
+                </label>
+              </div>
+
+              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '10px' }}>
+                <label>
+                  Bank Account Number
+                  <input 
+                    type="text"
+                    value={bank} 
+                    onChange={e => setBank(e.target.value)} 
+                    placeholder="Account Number" 
+                  />
+                </label>
+                <label>
+                  IFSC Code
+                  <input 
+                    type="text"
+                    value={ifsc} 
+                    onChange={e => setIfsc(e.target.value)} 
+                    placeholder="IFSC Code" 
+                  />
+                </label>
+              </div>
+
+              {errorMsg && <div style={{ color: '#dc2626', fontSize: '12px', background: '#fef2f2', padding: '8px 12px', borderRadius: '6px' }}>⚠️ {errorMsg}</div>}
+              <button type="submit" className="primary full" disabled={loading}>
+                {loading ? 'Creating Profile...' : 'Register Citizen Profile ➔'}
+              </button>
+            </form>
+          )}
 
           <div className="divider"><span>OR QUICK START</span></div>
           <button className="demo" onClick={() => demo()}>
             <span className="demo-icon">✦</span>
-            <span><b>Try Quick Demo (Beneficiary)</b><small>Instant 1-click test with pre-filled beneficiary profile</small></span>
+            <span><b>Try Quick Demo (Beneficiary)</b><small>Sign in as Asha Ramesh Patil (asha.patil@gmail.com)</small></span>
             <b>→</b>
           </button>
           <button className="demo admin-demo" onClick={() => setPortalMode('admin')} style={{ marginTop: '10px', background: '#eff6ff', borderColor: '#bfdbfe', color: '#1e40af' }}>
