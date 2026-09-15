@@ -10,8 +10,6 @@ import java.math.BigDecimal;
 import java.time.LocalDate; 
 import java.util.*;
 
-import com.jansetu.grant.service.SmsService;
-
 @RestController 
 @RequestMapping("/api/v1") 
 @CrossOrigin(origins = {"http://localhost:5173", "http://127.0.0.1:5173"})
@@ -20,72 +18,21 @@ public class ApiController {
   private final SchemeRepository schemes; 
   private final GrantRequestRepository applications; 
   private final DisbursementStageRepository stages;
-  private final SmsService smsService;
 
-  ApiController(BeneficiaryRepository b, SchemeRepository s, GrantRequestRepository a, DisbursementStageRepository d, SmsService smsService) {
+  ApiController(BeneficiaryRepository b, SchemeRepository s, GrantRequestRepository a, DisbursementStageRepository d) {
     beneficiaries = b; 
     schemes = s; 
     applications = a; 
     stages = d;
-    this.smsService = smsService;
   }
-
-  private final Map<String, String> otpStore = new java.util.concurrent.ConcurrentHashMap<>();
 
   @PostMapping("/auth/login") 
-  public LoginResponse login(@Valid @RequestBody LoginBody body) {
-    Beneficiary b = beneficiaries.findByMobileOrAadhaarNo(body.identifier(), body.identifier())
-      .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Beneficiary not found. Use demo account or complete profile.")); 
-    return new LoginResponse(b.getId(), b.getName(), b.getMobile(), b.getAadhaarNo());
-  }
-
-  @PostMapping("/auth/configure-sms")
-  public Map<String, String> configureSms(@RequestBody(required = false) Map<String, String> body) {
-    String apiKey = (body != null && body.get("apiKey") != null) ? body.get("apiKey") : "";
-    String provider = (body != null && body.get("provider") != null) ? body.get("provider") : "FAST2SMS";
-    SmsService.setDynamicApiKey(apiKey, provider);
-    Map<String, String> res = new HashMap<>();
-    res.put("status", "configured");
-    res.put("provider", SmsService.getActiveProvider());
-    res.put("message", "SMS Gateway configured for " + provider);
-    return res;
-  }
-
-  @PostMapping("/auth/send-otp")
-  public SendOtpResponse sendOtp(@RequestBody(required = false) Map<String, String> body) {
+  public LoginResponse login(@RequestBody(required = false) Map<String, String> body) {
     String id = (body != null && body.get("identifier") != null) ? body.get("identifier") : "";
     if (id == null || id.trim().isEmpty()) {
       throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Mobile number or Citizen ID is required.");
     }
     String identifier = id.trim();
-    int randomOtp = 100000 + new Random().nextInt(900000);
-    String dynamicOtp = String.valueOf(randomOtp);
-    otpStore.put(identifier, dynamicOtp);
-
-    boolean sent = smsService.sendSms(identifier, dynamicOtp);
-
-    String provider = SmsService.getActiveProvider();
-    String msg = "Verification code dispatched via SMS Gateway (" + provider + ") to +91 " + identifier;
-    return new SendOtpResponse(identifier, dynamicOtp, msg, true);
-  }
-
-  @PostMapping("/auth/verify-otp")
-  public LoginResponse verifyOtp(@RequestBody(required = false) Map<String, String> body) {
-    String id = (body != null && body.get("identifier") != null) ? body.get("identifier") : "";
-    String otp = (body != null && body.get("otp") != null) ? body.get("otp") : "";
-    if (id == null || id.trim().isEmpty() || otp == null || otp.trim().isEmpty()) {
-      throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Mobile number and OTP code are required.");
-    }
-    String identifier = id.trim();
-    String enteredOtp = otp.trim();
-    String expectedOtp = otpStore.get(identifier);
-
-    if (expectedOtp == null || !expectedOtp.equals(enteredOtp)) {
-      throw new ResponseStatusException(HttpStatus.UNAUTHORIZED, "Invalid OTP code. Please enter the exact 6-digit OTP sent to your mobile.");
-    }
-
-    otpStore.remove(identifier);
-
     Beneficiary b = beneficiaries.findByMobileOrAadhaarNo(identifier, identifier)
       .orElseGet(() -> {
         Beneficiary newB = new Beneficiary();
@@ -326,26 +273,6 @@ public class ApiController {
   record LoginBody(@NotBlank String identifier) {} 
   record LoginResponse(Long id, String name, String mobile, String aadhaarNo) {} 
 
-  public static class SendOtpBody {
-    private String identifier;
-    public SendOtpBody() {}
-    public SendOtpBody(String identifier) { this.identifier = identifier; }
-    public String getIdentifier() { return identifier; }
-    public void setIdentifier(String identifier) { this.identifier = identifier; }
-  }
-
-  public static class VerifyOtpBody {
-    private String identifier;
-    private String otp;
-    public VerifyOtpBody() {}
-    public VerifyOtpBody(String identifier, String otp) { this.identifier = identifier; this.otp = otp; }
-    public String getIdentifier() { return identifier; }
-    public void setIdentifier(String identifier) { this.identifier = identifier; }
-    public String getOtp() { return otp; }
-    public void setOtp(String otp) { this.otp = otp; }
-  }
-
-  record SendOtpResponse(String identifier, String otp, String message, boolean success) {}
   record ProfileBody(Long id, String name, String mobile, String aadhaarNo, String category, BigDecimal annualIncome, String bankAccount, String ifscCode, String district, String state) {} 
   record ValidationBody(Long beneficiaryId, Set<String> documents) {} 
   record ApplyBody(Long beneficiaryId, Long schemeId, Set<String> documents) {} 

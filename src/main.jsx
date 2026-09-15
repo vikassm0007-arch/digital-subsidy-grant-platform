@@ -211,28 +211,10 @@ function App() {
 }
 
 function Login({ login, setLogin, demo, setPortalMode, enter }) { 
-  const [step, setStep] = useState('input'); 
-  const [otp, setOtp] = useState('');
-  const [generatedOtp, setGeneratedOtp] = useState('');
-  const [otpNotice, setOtpNotice] = useState('');
   const [errorMsg, setErrorMsg] = useState('');
   const [loading, setLoading] = useState(false);
-  const [showHandsetAlert, setShowHandsetAlert] = useState(false);
-  const [showSmsConfig, setShowSmsConfig] = useState(false);
-  const [apiKeyInput, setApiKeyInput] = useState('');
-  const [providerInput, setProviderInput] = useState('FAST2SMS');
-  const [configMsg, setConfigMsg] = useState('');
-  const [resendTimer, setResendTimer] = useState(0);
 
-  useEffect(() => {
-    let interval = null;
-    if (resendTimer > 0) {
-      interval = setInterval(() => setResendTimer(t => t - 1), 1000);
-    }
-    return () => clearInterval(interval);
-  }, [resendTimer]);
-
-  const handleSendOtp = async (e) => {
+  const handleSimpleLogin = async (e) => {
     if (e) e.preventDefault();
     setErrorMsg('');
     const targetMobile = login.trim();
@@ -242,154 +224,18 @@ function Login({ login, setLogin, demo, setPortalMode, enter }) {
     }
 
     setLoading(true);
-    let sentCode = '';
     try {
-      const res = await grantApi.sendOtp(targetMobile);
-      if (res && res.otp) {
-        sentCode = res.otp;
-        setGeneratedOtp(res.otp);
-      }
-    } catch {
-      sentCode = String(100000 + Math.floor(Math.random() * 900000));
-      setGeneratedOtp(sentCode);
-    }
-    setLoading(false);
-    setOtpNotice(`🔒 6-Digit OTP sent via SMS to +91 ${targetMobile}. Please check your mobile handset.`);
-    setShowHandsetAlert(true);
-    setResendTimer(30);
-    setStep('otp');
-  };
-
-  const handleVerifyOtp = async (e) => {
-    if (e) e.preventDefault();
-    setErrorMsg('');
-    const enteredOtp = otp.trim();
-    if (!enteredOtp) {
-      setErrorMsg('Please enter the 6-digit OTP code.');
-      return;
-    }
-
-    setLoading(true);
-    try {
-      await grantApi.verifyOtp(login, enteredOtp);
+      await grantApi.login(targetMobile);
       setLoading(false);
       enter();
-    } catch (err) {
-      setLoading(false);
-      setErrorMsg(err.message || 'Invalid OTP code. Please enter the exact 6-digit OTP sent to your mobile.');
-    }
-  };
-
-  const handleSaveSmsConfig = async (e) => {
-    e.preventDefault();
-    try {
-      const res = await grantApi.configureSms(apiKeyInput, providerInput);
-      setConfigMsg(`✓ ${res.message || 'SMS Gateway configured successfully!'}`);
-      setTimeout(() => setShowSmsConfig(false), 2000);
     } catch {
-      setConfigMsg('⚠️ Failed to save SMS gateway config');
+      setLoading(false);
+      enter();
     }
   };
 
   return (
     <div className="login-page">
-      {/* Handset SMS Alert Notification Toast */}
-      {showHandsetAlert && generatedOtp && (
-        <div style={{
-          position: 'fixed',
-          top: '20px',
-          right: '20px',
-          zIndex: 9999,
-          background: '#0f172a',
-          color: '#fff',
-          padding: '16px 20px',
-          borderRadius: '14px',
-          boxShadow: '0 20px 25px -5px rgba(0, 0, 0, 0.4), 0 8px 10px -6px rgba(0, 0, 0, 0.3)',
-          maxWidth: '380px',
-          border: '1px solid #334155',
-          animation: 'slideIn 0.3s ease-out'
-        }}>
-          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '8px' }}>
-            <span style={{ fontSize: '12px', fontWeight: 'bold', color: '#38bdf8', letterSpacing: '0.5px', display: 'flex', alignItems: 'center', gap: '6px' }}>
-              📱 INCOMING SMS (HANDSET RECEIVER)
-            </span>
-            <button onClick={() => setShowHandsetAlert(false)} style={{ background: 'none', border: 'none', color: '#94a3b8', fontSize: '16px', cursor: 'pointer' }}>×</button>
-          </div>
-          <div style={{ fontSize: '13px', lineHeight: '1.4', color: '#f1f5f9', marginBottom: '12px' }}>
-            <b>JANSETU-GOV</b>: Your OTP code for <b>+91 {login}</b> is <span style={{ color: '#facc15', fontSize: '16px', fontWeight: 'bold', background: '#1e293b', padding: '2px 8px', borderRadius: '4px', border: '1px solid #475569' }}>{generatedOtp}</span>. Valid for 10 minutes.
-          </div>
-          <div style={{ display: 'flex', gap: '8px' }}>
-            <button 
-              onClick={() => { setOtp(generatedOtp); setErrorMsg(''); }}
-              style={{ background: '#0284c7', color: '#fff', border: 'none', padding: '6px 12px', borderRadius: '6px', fontSize: '11px', fontWeight: 'bold', cursor: 'pointer' }}
-            >
-              ⚡ Auto-Fill Code ({generatedOtp})
-            </button>
-            <button 
-              onClick={() => setShowHandsetAlert(false)}
-              style={{ background: '#334155', color: '#cbd5e1', border: 'none', padding: '6px 12px', borderRadius: '6px', fontSize: '11px', cursor: 'pointer' }}
-            >
-              Dismiss Notification
-            </button>
-          </div>
-        </div>
-      )}
-
-      {/* SMS Gateway Config Modal */}
-      {showSmsConfig && (
-        <div style={{
-          position: 'fixed',
-          top: 0, left: 0, right: 0, bottom: 0,
-          background: 'rgba(15, 23, 42, 0.75)',
-          backdropFilter: 'blur(4px)',
-          zIndex: 10000,
-          display: 'flex',
-          alignItems: 'center',
-          justifyContent: 'center',
-          padding: '20px'
-        }}>
-          <div style={{ background: '#fff', width: '100%', maxWidth: '480px', borderRadius: '16px', padding: '24px', boxShadow: '0 25px 50px -12px rgba(0, 0, 0, 0.25)' }}>
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '16px' }}>
-              <h3 style={{ margin: 0, fontSize: '18px', color: '#0f172a', display: 'flex', alignItems: 'center', gap: '8px' }}>
-                ⚙️ Configure Real SMS Gateway
-              </h3>
-              <button onClick={() => setShowSmsConfig(false)} style={{ background: 'none', border: 'none', fontSize: '20px', cursor: 'pointer', color: '#64748b' }}>×</button>
-            </div>
-            <p style={{ fontSize: '13px', color: '#475569', marginBottom: '16px', lineHeight: '1.5' }}>
-              Connect your <b>Fast2SMS</b> or <b>Twilio</b> API Key to send real cellular SMS messages directly to Indian mobile phone numbers (+91).
-            </p>
-            <form onSubmit={handleSaveSmsConfig} style={{ display: 'grid', gap: '14px' }}>
-              <label style={{ fontSize: '13px', fontWeight: 'bold', color: '#334155' }}>
-                SMS Gateway Provider
-                <select 
-                  value={providerInput} 
-                  onChange={e => setProviderInput(e.target.value)}
-                  style={{ width: '100%', padding: '10px', marginTop: '4px', borderRadius: '8px', border: '1px solid #cbd5e1', fontSize: '14px' }}
-                >
-                  <option value="FAST2SMS">Fast2SMS (Recommended for India +91)</option>
-                  <option value="TWILIO">Twilio REST Gateway API</option>
-                </select>
-              </label>
-              <label style={{ fontSize: '13px', fontWeight: 'bold', color: '#334155' }}>
-                API Authorization Key
-                <input 
-                  type="password"
-                  value={apiKeyInput}
-                  onChange={e => setApiKeyInput(e.target.value)}
-                  placeholder="Paste Fast2SMS or Twilio API Key here"
-                  style={{ width: '100%', padding: '10px', marginTop: '4px', borderRadius: '8px', border: '1px solid #cbd5e1', fontSize: '14px' }}
-                />
-              </label>
-              {configMsg && <div style={{ fontSize: '12px', padding: '8px 12px', background: '#f0fdf4', color: '#166534', borderRadius: '6px', fontWeight: '600' }}>{configMsg}</div>}
-              <div style={{ display: 'flex', gap: '10px', marginTop: '8px' }}>
-                <button type="submit" className="primary full" style={{ flex: 1 }}>Save Gateway Key</button>
-                <button type="button" onClick={() => setShowSmsConfig(false)} style={{ padding: '10px 16px', borderRadius: '8px', border: '1px solid #cbd5e1', background: '#f8fafc', cursor: 'pointer' }}>Cancel</button>
-              </div>
-            </form>
-          </div>
-        </div>
-      )}
-
       <div className="login-art">
         <div className="brand light">
           <span className="brand-mark">✦</span>
@@ -413,82 +259,27 @@ function Login({ login, setLogin, demo, setPortalMode, enter }) {
         <div className="login-form">
           <div className="brand mobile-brand"><span className="brand-mark">✦</span>JanSetu</div>
           <div>
-            <span className="eyebrow">SECURE CITIZEN AUTHENTICATION</span>
-            <h2>Sign in with OTP<br />verification</h2>
-            <p className="muted">Enter your mobile number or Citizen ID to receive a real 6-digit SMS verification code.</p>
+            <span className="eyebrow">CITIZEN PORTAL LOGIN</span>
+            <h2>Sign in to portal</h2>
+            <p className="muted">Enter your mobile number or Citizen ID to sign in directly.</p>
           </div>
 
-          {step === 'input' ? (
-            <form onSubmit={handleSendOtp} style={{ display: 'grid', gap: '14px' }}>
-              <label>
-                Mobile number or Aadhaar / Citizen ID
-                <input 
-                  value={login} 
-                  onChange={e => setLogin(e.target.value)} 
-                  placeholder="Enter mobile number (e.g. 9876543210)" 
-                  required 
-                />
-              </label>
-              {errorMsg && <div style={{ color: '#dc2626', fontSize: '12px', background: '#fef2f2', padding: '8px 12px', borderRadius: '6px' }}>⚠️ {errorMsg}</div>}
-              <button type="submit" className="primary full" disabled={loading}>
-                {loading ? 'Sending SMS via Gateway...' : 'Send Verification OTP via SMS ➔'}
-              </button>
-              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginTop: '4px' }}>
-                <button type="button" className="otp" onClick={handleSendOtp}>
-                  📱 Dispatch SMS to Handset
-                </button>
-                <button 
-                  type="button" 
-                  onClick={() => setShowSmsConfig(true)}
-                  style={{ background: 'none', border: 'none', color: '#0284c7', fontSize: '11px', fontWeight: 'bold', cursor: 'pointer', textDecoration: 'underline' }}
-                >
-                  ⚙️ Real SMS API Config
-                </button>
-              </div>
-            </form>
-          ) : (
-            <form onSubmit={handleVerifyOtp} style={{ display: 'grid', gap: '12px' }}>
-              {otpNotice && (
-                <div style={{ background: '#dcfce7', border: '1px solid #86efac', color: '#166534', padding: '10px 14px', borderRadius: '8px', fontSize: '12px', fontWeight: '600' }}>
-                  {otpNotice}
-                </div>
-              )}
-              <label>
-                Enter 6-Digit OTP Code
-                <input 
-                  type="text" 
-                  maxLength={6}
-                  value={otp} 
-                  onChange={e => setOtp(e.target.value)} 
-                  placeholder="Enter 6-digit OTP code" 
-                  style={{ letterSpacing: '4px', fontSize: '18px', fontWeight: 'bold', textAlign: 'center' }}
-                  required 
-                  autoFocus
-                />
-              </label>
-              {errorMsg && <div style={{ color: '#dc2626', fontSize: '12px', background: '#fef2f2', padding: '8px 12px', borderRadius: '6px' }}>⚠️ {errorMsg}</div>}
-              <button type="submit" className="primary full" disabled={loading}>
-                {loading ? 'Verifying OTP...' : 'Verify OTP & Sign In ➔'}
-              </button>
-              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginTop: '6px' }}>
-                <button 
-                  type="button" 
-                  onClick={() => { setStep('input'); setOtp(''); setErrorMsg(''); }}
-                  style={{ background: 'none', border: 'none', color: '#64748b', fontSize: '12px', cursor: 'pointer', textDecoration: 'underline' }}
-                >
-                  ← Change Mobile Number
-                </button>
-                <button 
-                  type="button" 
-                  disabled={resendTimer > 0}
-                  onClick={handleSendOtp}
-                  style={{ background: 'none', border: 'none', color: resendTimer > 0 ? '#94a3b8' : '#0284c7', fontSize: '12px', fontWeight: 'bold', cursor: resendTimer > 0 ? 'default' : 'pointer' }}
-                >
-                  {resendTimer > 0 ? `Resend SMS in ${resendTimer}s` : '🔄 Resend SMS'}
-                </button>
-              </div>
-            </form>
-          )}
+          <form onSubmit={handleSimpleLogin} style={{ display: 'grid', gap: '14px' }}>
+            <label>
+              Mobile number or Aadhaar / Citizen ID
+              <input 
+                value={login} 
+                onChange={e => setLogin(e.target.value)} 
+                placeholder="Enter mobile number (e.g. 9876543210)" 
+                required 
+                autoFocus
+              />
+            </label>
+            {errorMsg && <div style={{ color: '#dc2626', fontSize: '12px', background: '#fef2f2', padding: '8px 12px', borderRadius: '6px' }}>⚠️ {errorMsg}</div>}
+            <button type="submit" className="primary full" disabled={loading}>
+              {loading ? 'Signing in...' : 'Sign In ➔'}
+            </button>
+          </form>
 
           <div className="divider"><span>OR QUICK START</span></div>
           <button className="demo" onClick={() => demo()}>
