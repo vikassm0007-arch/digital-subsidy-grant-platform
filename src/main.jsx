@@ -1,3 +1,6 @@
+if (typeof window !== 'undefined' && typeof window.global === 'undefined') {
+  window.global = window;
+}
 import { useEffect, useMemo, useState } from 'react';
 import { createRoot } from 'react-dom/client';
 import './styles.css';

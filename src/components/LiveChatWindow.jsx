@@ -1,3 +1,6 @@
+if (typeof window !== 'undefined' && typeof window.global === 'undefined') {
+  window.global = window;
+}
 import React, { useState, useEffect, useRef } from 'react';
 import { Client } from '@stomp/stompjs';
 import SockJS from 'sockjs-client';
