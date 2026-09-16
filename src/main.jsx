@@ -2,6 +2,7 @@ import { useEffect, useMemo, useState } from 'react';
 import { createRoot } from 'react-dom/client';
 import './styles.css';
 import { grantApi } from './api';
+import LiveChatWindow from './components/LiveChatWindow';
 
 const schemes = [
   { id: 'sch-001', icon: '🌾', category: 'Agriculture', title: 'PM-KISAN Samman Nidhi', short: 'PM-KISAN', amount: '₹6,000 / year', desc: 'Direct income support of ₹6,000 per year in three equal installments for small and marginal landholder farmer families.', eligibility: ['Small/marginal landholder', 'Land Ownership Copy', 'Valid Aadhaar & Bank Passbook'], color: 'green', limit: 300000, categories: ['All'], docs: ['Land Ownership Copy', 'Aadhaar Card', 'Bank Passbook'] },
@@ -226,7 +227,7 @@ function App() {
           {screen === 'schemes' && <Schemes schemes={schemes} applications={applications} apply={apply} checkCriteria={checkCriteria} />}
           {screen === 'tracking' && <Tracking app={app} scheme={appScheme} fundsReceived={fundsReceived} setScreen={setScreen} />}
           {criteria && <CriteriaModal scheme={criteria.scheme} result={criteria.result} close={() => setCriteria(null)} confirm={confirmApplication} />}
-          <Chatbot profile={profile} schemes={schemes} applications={applications} open={chatOpen} setOpen={setChatOpen} />
+          <LiveChatWindow profile={profile} schemes={schemes} applications={applications} open={chatOpen} setOpen={setChatOpen} />
         </main>
       </div>
     </div>
