@@ -144,12 +144,33 @@ export default function LiveChatWindow({ profile, schemes, applications, open, s
       console.warn('[WS FALLBACK]: STOMP socket disconnected. Falling back to HTTP/Simulated response.');
       setTimeout(() => {
         setMessages((prev) => prev.map((m) => (m.id === tempId ? { ...m, status: 'DELIVERED' } : m)));
+        
+        const query = msgText.toLowerCase();
+        let fallbackReply = "";
+        if (query.includes("scholarship") || query.includes("matric") || query.includes("sc") || query.includes("obc") || query.includes("education")) {
+          fallbackReply = "🎓 Post Matric & Higher Education Scholarship:\n• Benefit: 100% Tuition Fee coverage + Monthly Stipend\n• Eligibility: SC / ST / OBC category students with family income ≤ ₹2.50 Lakhs/year\n• Required Docs: SC/OBC Caste Certificate, Income Certificate, College Admission Slip, Marksheets, Aadhaar & Passbook.\n• Verification: DigiLocker auto-verifies your Caste & Marksheet instantly!";
+        } else if (query.includes("kisan") || query.includes("farmer") || query.includes("agriculture")) {
+          fallbackReply = "🌾 PM-KISAN & Farmer Support Schemes:\n• Benefit: ₹6,000/year direct financial support in 3 equal installments + 3% interest subvention on KCC crop loans\n• Required Docs: Land Ownership (7/12 Extract), Aadhaar Card, Bank Passbook.";
+        } else if (query.includes("solar") || query.includes("electricity") || query.includes("surya")) {
+          fallbackReply = "☀️ PM Surya Ghar & Solar Energy Schemes:\n• Benefit: Up to ₹78,000 capital subsidy for rooftop solar installation\n• Required Docs: Electricity Bill, Property Proof, Roof Layout Plan, Aadhaar Card.";
+        } else if (query.includes("house") || query.includes("housing") || query.includes("pmay")) {
+          fallbackReply = "🏠 PMAY Housing Subsidy (Urban & Gramin):\n• Benefit: Credit-linked subsidy up to ₹2.67 Lakhs for home construction or purchase\n• Required Docs: Income Certificate, Property Papers, Site Photos, Aadhaar Card.";
+        } else if (query.includes("mudra") || query.includes("loan") || query.includes("business") || query.includes("vishwakarma")) {
+          fallbackReply = "💼 MSME & Business Grants:\n• Mudra Shishu: Up to ₹50,000 collateral-free startup loan\n• PM Vishwakarma: Up to ₹3.00 Lakhs for traditional artisans\n• Required Docs: Business Proposal, ID Proof, Bank Statement.";
+        } else if (query.includes("digilocker") || query.includes("document") || query.includes("proof")) {
+          fallbackReply = "🛡️ Submitted DigiLocker Cryptographic Proofs:\n✓ Aadhaar Card (Identity Verified)\n✓ Income Certificate (Verified)\n✓ Caste Certificate (Category Verified)\n✓ Land Ownership / 7-12 RoR (Verified)\n✓ Bank Passbook & IFSC (DBT Account Verified)";
+        } else if (query.includes("track") || query.includes("status") || query.includes("application")) {
+          fallbackReply = "⌁ Application Progress & Officer Queue:\n• Stage 1 (Field Officer): VERIFIED & APPROVED ✓\n• Stage 2 (District Officer): UNDER REVIEW ⏳\n• Stage 3 (Finance Approver): PENDING DBT RELEASE 💳";
+        } else {
+          fallbackReply = `✦ JanSetu AI Support: Information regarding '${msgText}':\n• Coverage: 50 active subsidy schemes across Agriculture, Education, Housing, Green Energy & MSMEs.\n• Workflow: 3-Stage Officer Approval (Field ➔ District ➔ Finance) with 100% Direct Benefit Transfer (DBT).`;
+        }
+
         setMessages((prev) => [
           ...prev,
           {
             id: 'bot-fallback-' + Date.now(),
             sender: 'JanSetu AI Support',
-            content: `✦ Live Assist: ${msgText.toLowerCase().includes('solar') ? 'PM Surya Ghar scheme grants up to ₹78,000 for solar rooftop.' : 'You can track active schemes, DigiLocker verified proofs, or officer approval queues live!'}`,
+            content: fallbackReply,
             timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
             type: 'BOT_REPLY',
             status: 'DELIVERED'
@@ -199,7 +220,7 @@ export default function LiveChatWindow({ profile, schemes, applications, open, s
             <div style={{ fontSize: '11px', fontWeight: 'bold', marginBottom: '2px', opacity: 0.8 }}>
               {m.sender}
             </div>
-            <div>{m.content}</div>
+            <div style={{ whiteSpace: 'pre-wrap', lineHeight: '1.4' }}>{m.content}</div>
             <div style={{ fontSize: '9px', textAlign: 'right', marginTop: '4px', opacity: 0.6, display: 'flex', justifyContent: 'flex-end', gap: '4px' }}>
               <span>{m.timestamp}</span>
               {m.sender === (profile.name || 'Asha Ramesh Patil') && (
