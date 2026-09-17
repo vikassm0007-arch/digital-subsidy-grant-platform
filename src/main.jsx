@@ -237,6 +237,15 @@ function App() {
   );
 }
 
+const generateCaptchaCode = () => {
+  const chars = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789';
+  let code = '';
+  for (let i = 0; i < 6; i++) {
+    code += chars.charAt(Math.floor(Math.random() * chars.length));
+  }
+  return code;
+};
+
 function Login({ login, setLogin, demo, setPortalMode, enter }) { 
   const [mode, setMode] = useState('signin'); // 'signin' or 'register'
   const [nameInput, setNameInput] = useState('');
@@ -247,8 +256,15 @@ function Login({ login, setLogin, demo, setPortalMode, enter }) {
   const [income, setIncome] = useState('180000');
   const [bank, setBank] = useState('245710003456');
   const [ifsc, setIfsc] = useState('SBIN0000456');
+  const [captchaCode, setCaptchaCode] = useState(generateCaptchaCode());
+  const [captchaInput, setCaptchaInput] = useState('');
   const [errorMsg, setErrorMsg] = useState('');
   const [loading, setLoading] = useState(false);
+
+  const refreshCaptcha = () => {
+    setCaptchaCode(generateCaptchaCode());
+    setCaptchaInput('');
+  };
 
   const handleSignIn = async (e) => {
     if (e) e.preventDefault();
@@ -257,6 +273,11 @@ function Login({ login, setLogin, demo, setPortalMode, enter }) {
     const targetName = nameInput.trim();
     if (!targetEmail && !targetName) {
       setErrorMsg('Please enter your Name or Gmail address to sign in.');
+      return;
+    }
+    if (captchaInput.trim().toUpperCase() !== captchaCode) {
+      setErrorMsg('⚠️ Invalid Security CAPTCHA code. Please enter the correct code shown in the image.');
+      refreshCaptcha();
       return;
     }
 
@@ -280,6 +301,11 @@ function Login({ login, setLogin, demo, setPortalMode, enter }) {
     }
     if (!emailInput.trim()) {
       setErrorMsg('Gmail / Email address is required for registration.');
+      return;
+    }
+    if (captchaInput.trim().toUpperCase() !== captchaCode) {
+      setErrorMsg('⚠️ Invalid Security CAPTCHA code. Please enter the correct code shown in the image.');
+      refreshCaptcha();
       return;
     }
 
@@ -402,6 +428,60 @@ function Login({ login, setLogin, demo, setPortalMode, enter }) {
                   required
                 />
               </label>
+
+              {/* Security CAPTCHA Verification */}
+              <div style={{ background: '#f8fafc', padding: '12px', borderRadius: '8px', border: '1px solid #cbd5e1' }}>
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '8px' }}>
+                  <span style={{ fontSize: '12px', fontWeight: 'bold', color: '#334155' }}>🛡️ Security CAPTCHA Verification *</span>
+                  <button 
+                    type="button" 
+                    onClick={refreshCaptcha}
+                    style={{
+                      background: 'none',
+                      border: 'none',
+                      color: '#2563eb',
+                      fontSize: '12px',
+                      fontWeight: 'bold',
+                      cursor: 'pointer',
+                      display: 'flex',
+                      alignItems: 'center',
+                      gap: '4px'
+                    }}
+                  >
+                    🔄 Refresh Code
+                  </button>
+                </div>
+                <div style={{ display: 'flex', gap: '10px', alignItems: 'center' }}>
+                  <div style={{
+                    background: 'linear-gradient(135deg, #0f172a 0%, #1e293b 100%)',
+                    color: '#38bdf8',
+                    fontFamily: 'monospace, Courier, monospace',
+                    fontSize: '20px',
+                    fontWeight: '900',
+                    letterSpacing: '5px',
+                    padding: '8px 14px',
+                    borderRadius: '6px',
+                    userSelect: 'none',
+                    textDecoration: 'line-through',
+                    fontStyle: 'italic',
+                    boxShadow: 'inset 0 2px 4px rgba(0,0,0,0.5)',
+                    border: '1px dashed #64748b',
+                    textAlign: 'center',
+                    flexShrink: 0
+                  }}>
+                    {captchaCode}
+                  </div>
+                  <input 
+                    type="text"
+                    value={captchaInput}
+                    onChange={e => setCaptchaInput(e.target.value)}
+                    placeholder="Enter CAPTCHA"
+                    required
+                    style={{ textTransform: 'uppercase', letterSpacing: '2px', fontWeight: 'bold', margin: 0, flex: 1 }}
+                  />
+                </div>
+              </div>
+
               {errorMsg && <div style={{ color: '#dc2626', fontSize: '12px', background: '#fef2f2', padding: '8px 12px', borderRadius: '6px' }}>⚠️ {errorMsg}</div>}
               <button type="submit" className="primary full" disabled={loading}>
                 {loading ? 'Authenticating...' : 'Sign In to Portal ➔'}
@@ -494,6 +574,59 @@ function Login({ login, setLogin, demo, setPortalMode, enter }) {
                     placeholder="IFSC Code" 
                   />
                 </label>
+              </div>
+
+              {/* Security CAPTCHA Verification */}
+              <div style={{ background: '#f8fafc', padding: '12px', borderRadius: '8px', border: '1px solid #cbd5e1' }}>
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '8px' }}>
+                  <span style={{ fontSize: '12px', fontWeight: 'bold', color: '#334155' }}>🛡️ Security CAPTCHA Verification *</span>
+                  <button 
+                    type="button" 
+                    onClick={refreshCaptcha}
+                    style={{
+                      background: 'none',
+                      border: 'none',
+                      color: '#2563eb',
+                      fontSize: '12px',
+                      fontWeight: 'bold',
+                      cursor: 'pointer',
+                      display: 'flex',
+                      alignItems: 'center',
+                      gap: '4px'
+                    }}
+                  >
+                    🔄 Refresh Code
+                  </button>
+                </div>
+                <div style={{ display: 'flex', gap: '10px', alignItems: 'center' }}>
+                  <div style={{
+                    background: 'linear-gradient(135deg, #0f172a 0%, #1e293b 100%)',
+                    color: '#38bdf8',
+                    fontFamily: 'monospace, Courier, monospace',
+                    fontSize: '20px',
+                    fontWeight: '900',
+                    letterSpacing: '5px',
+                    padding: '8px 14px',
+                    borderRadius: '6px',
+                    userSelect: 'none',
+                    textDecoration: 'line-through',
+                    fontStyle: 'italic',
+                    boxShadow: 'inset 0 2px 4px rgba(0,0,0,0.5)',
+                    border: '1px dashed #64748b',
+                    textAlign: 'center',
+                    flexShrink: 0
+                  }}>
+                    {captchaCode}
+                  </div>
+                  <input 
+                    type="text"
+                    value={captchaInput}
+                    onChange={e => setCaptchaInput(e.target.value)}
+                    placeholder="Enter CAPTCHA"
+                    required
+                    style={{ textTransform: 'uppercase', letterSpacing: '2px', fontWeight: 'bold', margin: 0, flex: 1 }}
+                  />
+                </div>
               </div>
 
               {errorMsg && <div style={{ color: '#dc2626', fontSize: '12px', background: '#fef2f2', padding: '8px 12px', borderRadius: '6px' }}>⚠️ {errorMsg}</div>}
