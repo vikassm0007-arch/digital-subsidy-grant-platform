@@ -101,9 +101,9 @@ function App() {
       try { await grantApi.resetDemo(); } catch {}
       setApplications([]);
       setFundsReceived(0);
-      setNotice('Welcome Asha Ramesh Patil! Select any of the 50 schemes below to apply and demonstrate the 3-stage approval & disbursement workflow to your teacher.');
+      setNotice('');
     } else {
-      setNotice('Welcome back Asha Ramesh Patil! Your active demo session and submitted applications are preserved.');
+      setNotice('');
     }
     setProfile(demoProfile); 
     setLogin('9876543210'); 
