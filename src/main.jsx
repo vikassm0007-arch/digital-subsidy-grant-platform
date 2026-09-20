@@ -250,12 +250,12 @@ function Login({ login, setLogin, demo, setPortalMode, enter }) {
   const [mode, setMode] = useState('signin'); // 'signin' or 'register'
   const [nameInput, setNameInput] = useState('');
   const [emailInput, setEmailInput] = useState('');
-  const [category, setCategory] = useState('OBC');
-  const [district, setDistrict] = useState('Pune');
-  const [stateName, setStateName] = useState('Maharashtra');
-  const [income, setIncome] = useState('180000');
-  const [bank, setBank] = useState('245710003456');
-  const [ifsc, setIfsc] = useState('SBIN0000456');
+  const [category, setCategory] = useState('');
+  const [district, setDistrict] = useState('');
+  const [stateName, setStateName] = useState('');
+  const [income, setIncome] = useState('');
+  const [bank, setBank] = useState('');
+  const [ifsc, setIfsc] = useState('');
   const [captchaCode, setCaptchaCode] = useState(generateCaptchaCode());
   const [captchaInput, setCaptchaInput] = useState('');
   const [errorMsg, setErrorMsg] = useState('');
@@ -516,6 +516,7 @@ function Login({ login, setLogin, demo, setPortalMode, enter }) {
                 <label>
                   Category
                   <select value={category} onChange={e => setCategory(e.target.value)}>
+                    <option value="">Select Category</option>
                     <option value="OBC">OBC</option>
                     <option value="General">General</option>
                     <option value="SC">SC</option>
@@ -529,7 +530,7 @@ function Login({ login, setLogin, demo, setPortalMode, enter }) {
                     type="number"
                     value={income} 
                     onChange={e => setIncome(e.target.value)} 
-                    placeholder="180000" 
+                    placeholder="Enter Annual Income (e.g. 180000)" 
                   />
                 </label>
               </div>
@@ -541,7 +542,7 @@ function Login({ login, setLogin, demo, setPortalMode, enter }) {
                     type="text"
                     value={district} 
                     onChange={e => setDistrict(e.target.value)} 
-                    placeholder="District (e.g. Pune)" 
+                    placeholder="Enter District (e.g. Pune)" 
                   />
                 </label>
                 <label>
@@ -550,7 +551,7 @@ function Login({ login, setLogin, demo, setPortalMode, enter }) {
                     type="text"
                     value={stateName} 
                     onChange={e => setStateName(e.target.value)} 
-                    placeholder="State (e.g. Maharashtra)" 
+                    placeholder="Enter State (e.g. Maharashtra)" 
                   />
                 </label>
               </div>
@@ -562,7 +563,7 @@ function Login({ login, setLogin, demo, setPortalMode, enter }) {
                     type="text"
                     value={bank} 
                     onChange={e => setBank(e.target.value)} 
-                    placeholder="Account Number" 
+                    placeholder="Enter Bank Account Number" 
                   />
                 </label>
                 <label>
@@ -571,7 +572,7 @@ function Login({ login, setLogin, demo, setPortalMode, enter }) {
                     type="text"
                     value={ifsc} 
                     onChange={e => setIfsc(e.target.value)} 
-                    placeholder="IFSC Code" 
+                    placeholder="Enter IFSC Code (e.g. SBIN0000456)" 
                   />
                 </label>
               </div>
