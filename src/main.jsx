@@ -84,6 +84,7 @@ function extractAmountNumber(amountStr, fallbackStr = '') {
 
 function App() {
   const [portalMode, setPortalMode] = useState('beneficiary');
+  const [selectedOfficerRole, setSelectedOfficerRole] = useState('ROLE_FIELD_OFFICER');
   const [screen, setScreen] = useState('login');
   const [profile, setProfile] = useState(blankProfile);
   const [login, setLogin] = useState('');
@@ -184,7 +185,7 @@ function App() {
   };
 
   if (portalMode === 'admin') {
-    return <AdminPortal setPortalMode={setPortalMode} onDisbursementUpdate={handleDisbursementUpdate} onStageAdvance={handleStageAdvance} />;
+    return <AdminPortal initialRole={selectedOfficerRole} setPortalMode={setPortalMode} onDisbursementUpdate={handleDisbursementUpdate} onStageAdvance={handleStageAdvance} />;
   }
 
   if (screen === 'login') return (
@@ -194,6 +195,7 @@ function App() {
         setLogin={setLogin} 
         demo={demo} 
         setPortalMode={setPortalMode} 
+        setSelectedOfficerRole={setSelectedOfficerRole}
         enter={(userData) => { 
           if (userData) {
             setProfile(p => ({
@@ -246,8 +248,8 @@ const generateCaptchaCode = () => {
   return code;
 };
 
-function Login({ login, setLogin, demo, setPortalMode, enter }) { 
-  const [mode, setMode] = useState('signin'); // 'signin' or 'register'
+function Login({ login, setLogin, demo, setPortalMode, setSelectedOfficerRole, enter }) { 
+  const [mode, setMode] = useState('signin'); // 'signin', 'register', or 'officer'
   const [nameInput, setNameInput] = useState('');
   const [emailInput, setEmailInput] = useState('');
   const [category, setCategory] = useState('');
@@ -260,6 +262,42 @@ function Login({ login, setLogin, demo, setPortalMode, enter }) {
   const [captchaInput, setCaptchaInput] = useState('');
   const [errorMsg, setErrorMsg] = useState('');
   const [loading, setLoading] = useState(false);
+
+  // Officer Login Form State
+  const [officerRole, setOfficerRole] = useState('ROLE_FIELD_OFFICER');
+  const [officerEmail, setOfficerEmail] = useState('field.officer@gov.in');
+  const [officerPassword, setOfficerPassword] = useState('Field@2026');
+
+  const handleRoleChange = (role) => {
+    setOfficerRole(role);
+    if (role === 'ROLE_FIELD_OFFICER') {
+      setOfficerEmail('field.officer@gov.in');
+      setOfficerPassword('Field@2026');
+    } else if (role === 'ROLE_DISTRICT_OFFICER') {
+      setOfficerEmail('district.officer@gov.in');
+      setOfficerPassword('District@2026');
+    } else if (role === 'ROLE_FINANCE_APPROVER') {
+      setOfficerEmail('finance.approver@gov.in');
+      setOfficerPassword('Finance@2026');
+    }
+  };
+
+  const handleOfficerLogin = async (e) => {
+    if (e) e.preventDefault();
+    setErrorMsg('');
+    setLoading(true);
+    try {
+      const res = await grantApi.officerLogin(officerEmail.trim() || 'officer@gov.in', officerPassword || '1234');
+      setLoading(false);
+      const roleToUse = res?.role || officerRole;
+      if (setSelectedOfficerRole) setSelectedOfficerRole(roleToUse);
+      setPortalMode('admin');
+    } catch (err) {
+      setLoading(false);
+      if (setSelectedOfficerRole) setSelectedOfficerRole(officerRole);
+      setPortalMode('admin');
+    }
+  };
 
   const refreshCaptcha = () => {
     setCaptchaCode(generateCaptchaCode());
@@ -430,19 +468,75 @@ function Login({ login, setLogin, demo, setPortalMode, enter }) {
           </div>
 
           {mode === 'officer' ? (
-            <div style={{ display: 'grid', gap: '14px' }}>
+            <div style={{ display: 'grid', gap: '16px' }}>
+              <form onSubmit={handleOfficerLogin} style={{ display: 'grid', gap: '14px', background: '#fff', border: '1px solid #e2e8f0', padding: '16px', borderRadius: '12px' }}>
+                <label style={{ display: 'grid', gap: '6px', fontSize: '13px', fontWeight: '600', color: '#1e293b' }}>
+                  Select Officer Role
+                  <select 
+                    value={officerRole} 
+                    onChange={e => handleRoleChange(e.target.value)}
+                    style={{ padding: '10px', borderRadius: '8px', border: '1px solid #cbd5e1', fontSize: '13px', background: '#f8fafc' }}
+                  >
+                    <option value="ROLE_FIELD_OFFICER">🔍 Field Verification Officer (Stage 1)</option>
+                    <option value="ROLE_DISTRICT_OFFICER">🏛️ District Sanctioning Officer (Stage 2)</option>
+                    <option value="ROLE_FINANCE_APPROVER">💳 Finance & Disbursement Approver (Stage 3)</option>
+                  </select>
+                </label>
+
+                <label style={{ display: 'grid', gap: '6px', fontSize: '13px', fontWeight: '600', color: '#1e293b' }}>
+                  Official Email / Username
+                  <input 
+                    type="text" 
+                    value={officerEmail} 
+                    onChange={e => setOfficerEmail(e.target.value)} 
+                    placeholder="Enter email or username (e.g. officer@gov.in)" 
+                    style={{ padding: '10px', borderRadius: '8px', border: '1px solid #cbd5e1', fontSize: '13px' }}
+                  />
+                </label>
+
+                <label style={{ display: 'grid', gap: '6px', fontSize: '13px', fontWeight: '600', color: '#1e293b' }}>
+                  Access Password
+                  <input 
+                    type="password" 
+                    value={officerPassword} 
+                    onChange={e => setOfficerPassword(e.target.value)} 
+                    placeholder="Enter password (e.g. 1234, admin, pass)" 
+                    style={{ padding: '10px', borderRadius: '8px', border: '1px solid #cbd5e1', fontSize: '13px' }}
+                  />
+                </label>
+
+                <button 
+                  type="submit" 
+                  disabled={loading}
+                  style={{ 
+                    padding: '12px', 
+                    borderRadius: '8px', 
+                    border: 'none', 
+                    background: '#1e40af', 
+                    color: '#fff', 
+                    fontWeight: 'bold', 
+                    fontSize: '14px', 
+                    cursor: 'pointer',
+                    marginTop: '4px'
+                  }}
+                >
+                  {loading ? 'Authenticating Officer...' : '🔑 Enter Officer Dashboard ➔'}
+                </button>
+              </form>
+
               <div style={{ background: '#f0f9ff', border: '1px solid #bae6fd', borderRadius: '10px', padding: '12px' }}>
                 <span style={{ fontSize: '11px', fontWeight: 'bold', color: '#0369a1', textTransform: 'uppercase', letterSpacing: '0.5px' }}>⚡ 1-CLICK EASY OFFICER LOGIN (PRESETS)</span>
                 <div style={{ display: 'grid', gap: '8px', marginTop: '8px' }}>
                   <button
                     type="button"
                     onClick={() => {
+                      if (setSelectedOfficerRole) setSelectedOfficerRole('ROLE_FIELD_OFFICER');
                       setPortalMode('admin');
                     }}
                     style={{
                       display: 'flex',
                       alignItems: 'center',
-                      justify: 'space-between',
+                      justifyContent: 'space-between',
                       padding: '8px 12px',
                       background: '#fff',
                       border: '1px solid #cbd5e1',
@@ -461,6 +555,7 @@ function Login({ login, setLogin, demo, setPortalMode, enter }) {
                   <button
                     type="button"
                     onClick={() => {
+                      if (setSelectedOfficerRole) setSelectedOfficerRole('ROLE_DISTRICT_OFFICER');
                       setPortalMode('admin');
                     }}
                     style={{
@@ -485,6 +580,7 @@ function Login({ login, setLogin, demo, setPortalMode, enter }) {
                   <button
                     type="button"
                     onClick={() => {
+                      if (setSelectedOfficerRole) setSelectedOfficerRole('ROLE_FINANCE_APPROVER');
                       setPortalMode('admin');
                     }}
                     style={{
@@ -1604,8 +1700,8 @@ const INITIAL_QUEUE = [
   }
 ];
 
-function AdminPortal({ setPortalMode, onDisbursementUpdate, onStageAdvance }) {
-  const [activeRole, setActiveRole] = useState('ROLE_FIELD_OFFICER');
+function AdminPortal({ initialRole, setPortalMode, onDisbursementUpdate, onStageAdvance }) {
+  const [activeRole, setActiveRole] = useState(initialRole || 'ROLE_FIELD_OFFICER');
   const [queue, setQueue] = useState(INITIAL_QUEUE);
   const [selectedApp, setSelectedApp] = useState(null);
   const [paymentTxn, setPaymentTxn] = useState(null);
