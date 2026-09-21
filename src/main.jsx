@@ -355,58 +355,160 @@ function Login({ login, setLogin, demo, setPortalMode, enter }) {
           <div className="brand mobile-brand"><span className="brand-mark">✦</span>JanSetu</div>
           
           {/* Mode Switcher Tabs */}
-          <div style={{ display: 'flex', background: '#f1f5f9', padding: '4px', borderRadius: '10px', marginBottom: '16px' }}>
+          <div style={{ display: 'flex', background: '#f1f5f9', padding: '4px', borderRadius: '10px', marginBottom: '16px', gap: '4px' }}>
             <button 
               type="button"
               onClick={() => { setMode('signin'); setErrorMsg(''); }}
               style={{
                 flex: 1,
-                padding: '8px 12px',
+                padding: '8px 6px',
                 borderRadius: '8px',
                 border: 'none',
                 background: mode === 'signin' ? '#fff' : 'transparent',
                 color: mode === 'signin' ? '#0f172a' : '#64748b',
                 fontWeight: mode === 'signin' ? 'bold' : 'normal',
-                fontSize: '13px',
+                fontSize: '12px',
                 cursor: 'pointer',
                 boxShadow: mode === 'signin' ? '0 1px 3px rgba(0,0,0,0.1)' : 'none',
                 transition: 'all 0.2s'
               }}
             >
-              🔑 Sign In (Name & Gmail)
+              🔑 Citizen Login
             </button>
             <button 
               type="button"
               onClick={() => { setMode('register'); setErrorMsg(''); }}
               style={{
                 flex: 1,
-                padding: '8px 12px',
+                padding: '8px 6px',
                 borderRadius: '8px',
                 border: 'none',
                 background: mode === 'register' ? '#fff' : 'transparent',
                 color: mode === 'register' ? '#0f172a' : '#64748b',
                 fontWeight: mode === 'register' ? 'bold' : 'normal',
-                fontSize: '13px',
+                fontSize: '12px',
                 cursor: 'pointer',
                 boxShadow: mode === 'register' ? '0 1px 3px rgba(0,0,0,0.1)' : 'none',
                 transition: 'all 0.2s'
               }}
             >
-              📝 Register Profile
+              📝 Register
+            </button>
+            <button 
+              type="button"
+              onClick={() => { setMode('officer'); setErrorMsg(''); }}
+              style={{
+                flex: 1,
+                padding: '8px 6px',
+                borderRadius: '8px',
+                border: 'none',
+                background: mode === 'officer' ? '#1e40af' : 'transparent',
+                color: mode === 'officer' ? '#fff' : '#1e40af',
+                fontWeight: mode === 'officer' ? 'bold' : '600',
+                fontSize: '12px',
+                cursor: 'pointer',
+                boxShadow: mode === 'officer' ? '0 1px 3px rgba(0,0,0,0.1)' : 'none',
+                transition: 'all 0.2s'
+              }}
+            >
+              🏛️ Officer Portal
             </button>
           </div>
 
           <div>
-            <span className="eyebrow">CITIZEN AUTHENTICATION</span>
-            <h2>{mode === 'signin' ? 'Sign in to portal' : 'Register citizen profile'}</h2>
+            <span className="eyebrow">{mode === 'officer' ? 'GOVERNMENT OFFICER AUTHENTICATION' : mode === 'signin' ? 'CITIZEN AUTHENTICATION' : 'BENEFICIARY REGISTRATION'}</span>
+            <h2>
+              {mode === 'officer' ? 'Official Officer Login' : mode === 'signin' ? 'Sign in to portal' : 'Register citizen profile'}
+            </h2>
             <p className="muted">
-              {mode === 'signin' 
+              {mode === 'officer' 
+                ? 'Select an officer role or enter official government credentials to access the verification & approval queue.' 
+                : mode === 'signin' 
                 ? 'Enter your Name and Gmail address to access your subsidy portal.' 
                 : 'Create your beneficiary profile to apply for 50+ government schemes.'}
             </p>
           </div>
 
-          {mode === 'signin' ? (
+          {mode === 'officer' ? (
+            <div style={{ display: 'grid', gap: '14px' }}>
+              <div style={{ background: '#f0f9ff', border: '1px solid #bae6fd', borderRadius: '10px', padding: '12px' }}>
+                <span style={{ fontSize: '11px', fontWeight: 'bold', color: '#0369a1', textTransform: 'uppercase', letterSpacing: '0.5px' }}>⚡ 1-CLICK EASY OFFICER LOGIN (PRESETS)</span>
+                <div style={{ display: 'grid', gap: '8px', marginTop: '8px' }}>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setPortalMode('admin');
+                    }}
+                    style={{
+                      display: 'flex',
+                      alignItems: 'center',
+                      justify: 'space-between',
+                      padding: '8px 12px',
+                      background: '#fff',
+                      border: '1px solid #cbd5e1',
+                      borderRadius: '8px',
+                      cursor: 'pointer',
+                      textAlign: 'left'
+                    }}
+                  >
+                    <div>
+                      <b style={{ color: '#d97706', fontSize: '13px' }}>🔍 Field Officer Login</b>
+                      <div style={{ fontSize: '11px', color: '#64748b' }}>field.officer@gov.in (Pass: Field@2026)</div>
+                    </div>
+                    <span style={{ background: '#fef3c7', color: '#92400e', fontSize: '11px', padding: '4px 8px', borderRadius: '6px', fontWeight: 'bold' }}>Login ➔</span>
+                  </button>
+
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setPortalMode('admin');
+                    }}
+                    style={{
+                      display: 'flex',
+                      alignItems: 'center',
+                      justify: 'space-between',
+                      padding: '8px 12px',
+                      background: '#fff',
+                      border: '1px solid #cbd5e1',
+                      borderRadius: '8px',
+                      cursor: 'pointer',
+                      textAlign: 'left'
+                    }}
+                  >
+                    <div>
+                      <b style={{ color: '#2563eb', fontSize: '13px' }}>🏛️ District Officer Login</b>
+                      <div style={{ fontSize: '11px', color: '#64748b' }}>district.officer@gov.in (Pass: District@2026)</div>
+                    </div>
+                    <span style={{ background: '#dbeafe', color: '#1e40af', fontSize: '11px', padding: '4px 8px', borderRadius: '6px', fontWeight: 'bold' }}>Login ➔</span>
+                  </button>
+
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setPortalMode('admin');
+                    }}
+                    style={{
+                      display: 'flex',
+                      alignItems: 'center',
+                      justify: 'space-between',
+                      padding: '8px 12px',
+                      background: '#fff',
+                      border: '1px solid #cbd5e1',
+                      borderRadius: '8px',
+                      cursor: 'pointer',
+                      textAlign: 'left'
+                    }}
+                  >
+                    <div>
+                      <b style={{ color: '#059669', fontSize: '13px' }}>💳 Finance Approver Login</b>
+                      <div style={{ fontSize: '11px', color: '#64748b' }}>finance.approver@gov.in (Pass: Finance@2026)</div>
+                    </div>
+                    <span style={{ background: '#d1fae5', color: '#065f46', fontSize: '11px', padding: '4px 8px', borderRadius: '6px', fontWeight: 'bold' }}>Login ➔</span>
+                  </button>
+                </div>
+              </div>
+            </div>
+          ) : mode === 'signin' ? (
             <form onSubmit={handleSignIn} style={{ display: 'grid', gap: '14px' }}>
               <label>
                 Full Name
