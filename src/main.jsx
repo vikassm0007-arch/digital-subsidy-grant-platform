@@ -841,11 +841,6 @@ function Login({ login, setLogin, demo, setPortalMode, setSelectedOfficerRole, e
             <span><b>Try Quick Demo (Beneficiary)</b><small>Sign in as Asha Ramesh Patil (asha.patil@gmail.com)</small></span>
             <b>→</b>
           </button>
-          <button className="demo admin-demo" onClick={() => setPortalMode('admin')} style={{ marginTop: '10px', background: '#eff6ff', borderColor: '#bfdbfe', color: '#1e40af' }}>
-            <span className="demo-icon" style={{ background: '#2563eb', color: '#fff' }}>🏛️</span>
-            <span><b>Official Officer Portal Demo →</b><small>Field Officer ➔ District Officer ➔ Finance Approver</small></span>
-            <b>→</b>
-          </button>
           <p className="secure">⌑ &nbsp; Protected by National Digital Subsidy & Grant Protocol</p>
         </div>
       </section>
