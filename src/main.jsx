@@ -60,8 +60,8 @@ const schemes = [
   { id: 'sch-050', icon: '🎓', category: 'Agri Entrepreneurship', title: 'Agri-Clinics and Agri-Business Centres (ACABC)', short: 'ACABC Scheme', amount: '36% to 44% Subsidy', desc: 'Subsidy on bank loans for agricultural graduates setting up custom hiring centers and agri-clinics.', eligibility: ['Agri Graduates / Diplomates', 'Degree/Diploma in Agriculture', 'Project Report'], color: 'blue', limit: 800000, categories: ['All'], docs: ['Degree/Diploma in Agriculture or Allied Science', 'Project Report'] }
 ];
 
-const blankProfile = { name: '', dob: '', gender: '', mobile: '', aadhaar: '', category: '', income: '', employment: '', state: '', district: '', village: '', bank: '', ifsc: '' };
-const demoProfile = { name: 'Asha Ramesh Patil', dob: '1993-08-18', gender: 'Female', mobile: '9876543210', aadhaar: 'XXXX XXXX 4812', category: 'OBC', income: '180000', employment: 'Farmer', state: 'Maharashtra', district: 'Pune', village: 'Khed', bank: '245710003456', ifsc: 'SBIN0000456' };
+const blankProfile = { name: '', dob: '', gender: '', mobile: '', aadhaar: '', category: '', income: '', employment: '', state: '', district: '', village: '', bank: '', ifsc: '', cooldownUntil: null, cooldownReason: '' };
+const demoProfile = { name: 'Asha Ramesh Patil', dob: '1993-08-18', gender: 'Female', mobile: '9876543210', aadhaar: 'XXXX XXXX 4812', category: 'OBC', income: '180000', employment: 'Farmer', state: 'Maharashtra', district: 'Pune', village: 'Khed', bank: '245710003456', ifsc: 'SBIN0000456', cooldownUntil: null, cooldownReason: '' };
 
 function extractAmountNumber(amountStr, fallbackStr = '') {
   if (!amountStr && !fallbackStr) return 0;
@@ -97,6 +97,33 @@ function App() {
   const applied = id => applications.find(a => a.schemeId === id);
   const activeApplication = useMemo(() => applications[0], [applications]);
 
+  const cooldownInfo = useMemo(() => {
+    if (profile?.cooldownUntil) {
+      const cooldownDate = new Date(profile.cooldownUntil);
+      const today = new Date();
+      today.setHours(0, 0, 0, 0);
+      if (cooldownDate >= today) {
+        return {
+          active: true,
+          until: profile.cooldownUntil,
+          reason: profile.cooldownReason || 'Application rejected during official verification'
+        };
+      }
+    }
+    const rejectedApp = applications.find(a => a.status === 'REJECTED');
+    if (rejectedApp) {
+      const futureDate = new Date();
+      futureDate.setDate(futureDate.getDate() + 30);
+      const dateStr = futureDate.toISOString().split('T')[0];
+      return {
+        active: true,
+        until: dateStr,
+        reason: 'Application rejected during official verification'
+      };
+    }
+    return { active: false, until: null, reason: '' };
+  }, [profile, applications]);
+
   const demo = async (forceReset = false) => { 
     if (forceReset || applications.length === 0) {
       try { await grantApi.resetDemo(); } catch {}
@@ -120,9 +147,24 @@ function App() {
 
   const handleStageAdvance = (newStage, newStatus) => {
     setApplications(prev => prev.map((a, i) => i === 0 ? { ...a, stage: newStage, status: newStatus } : a));
+    if (newStatus === 'REJECTED') {
+      const futureDate = new Date();
+      futureDate.setDate(futureDate.getDate() + 30);
+      const dateStr = futureDate.toISOString().split('T')[0];
+      setProfile(p => ({
+        ...p,
+        cooldownUntil: dateStr,
+        cooldownReason: 'Application rejected by officer review'
+      }));
+      setNotice('⛔ Application Rejected: The applicant account has been placed on a mandatory 30-day cooldown period.');
+    }
   };
   
   const apply = async schemeId => {
+    if (cooldownInfo.active) {
+      setNotice(`⛔ Account Cooldown Active: Application was rejected by an officer. Your account is on a mandatory 30-day cooldown until ${cooldownInfo.until}. New scheme applications are restricted.`);
+      return;
+    }
     if (applied(schemeId)) { setScreen('tracking'); return; }
     const scheme = schemes.find(s => s.id === schemeId);
     const limit = scheme.limit || 500000;
@@ -149,6 +191,10 @@ function App() {
   };
 
   const checkCriteria = async scheme => {
+    if (cooldownInfo.active) {
+      setNotice(`⛔ Account Cooldown Active: Application was rejected by an officer. Your account is on a mandatory 30-day cooldown until ${cooldownInfo.until}. New scheme applications are restricted.`);
+      return;
+    }
     const limit = scheme.limit || 500000;
     const allowedCategories = scheme.categories || ['All'];
     const docs = scheme.docs || ['Aadhaar Card', 'Bank Passbook'];
@@ -172,12 +218,23 @@ function App() {
   };
 
   const confirmApplication = async () => { 
+    if (cooldownInfo.active) {
+      setCriteria(null);
+      setNotice(`⛔ Account Cooldown Active: Application was rejected by an officer. Your account is on a mandatory 30-day cooldown until ${cooldownInfo.until}. New scheme applications are restricted.`);
+      return;
+    }
     const scheme = criteria.scheme; 
     const docs = scheme.docs || ['Aadhaar Card', 'Bank Passbook'];
     try { 
       const numericId = parseInt(scheme.id.replace('sch-', ''), 10);
       await grantApi.submitApplication(profile.id || 1, numericId, docs); 
-    } catch {} 
+    } catch (err) {
+      if (err.message && err.message.includes('cooldown')) {
+        setCriteria(null);
+        setNotice(`⛔ ${err.message}`);
+        return;
+      }
+    } 
     setCriteria(null); 
     setApplications([{ schemeId: scheme.id, stage: 0, applied: '07 Sep 2026', ref: `DSG-2026-0907-${Math.floor(100 + Math.random() * 900)}` }, ...applications]); 
     setNotice('Application submitted successfully. You can track its progress below.'); 
@@ -209,7 +266,9 @@ function App() {
               district: userData.district || p.district,
               state: userData.state || p.state,
               bank: userData.bankAccount || p.bank,
-              ifsc: userData.ifscCode || p.ifsc
+              ifsc: userData.ifscCode || p.ifsc,
+              cooldownUntil: userData.cooldownUntil || p.cooldownUntil,
+              cooldownReason: userData.cooldownReason || p.cooldownReason
             }));
           }
           setScreen('dashboard'); 
@@ -227,6 +286,30 @@ function App() {
         <main className="main-content">
           <Topbar profile={profile} setMenuOpen={setMenuOpen} />
           {notice && <div className="notice"><span>✓</span>{notice}<button onClick={() => setNotice('')}>×</button></div>}
+          {cooldownInfo.active && (
+            <div style={{
+              background: '#fef2f2',
+              border: '1px solid #fca5a5',
+              borderRadius: '12px',
+              padding: '14px 18px',
+              marginBottom: '18px',
+              display: 'flex',
+              alignItems: 'center',
+              gap: '14px',
+              boxShadow: '0 2px 8px rgba(220, 38, 38, 0.08)'
+            }}>
+              <span style={{ fontSize: '28px' }}>⛔</span>
+              <div style={{ flex: 1 }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '8px', flexWrap: 'wrap' }}>
+                  <b style={{ color: '#991b1b', fontSize: '14px' }}>ACCOUNT COOLDOWN ACTIVE (30 DAYS)</b>
+                  <span style={{ background: '#fee2e2', color: '#991b1b', fontSize: '11px', fontWeight: 'bold', padding: '2px 8px', borderRadius: '10px' }}>LOCKED UNTIL {cooldownInfo.until}</span>
+                </div>
+                <p style={{ color: '#7f1d1d', margin: '4px 0 0 0', fontSize: '12px', lineHeight: '1.4' }}>
+                  An officer has rejected an application submitted under your profile. As per government subsidy protocol, your account is temporarily restricted from applying for new schemes for 30 days ({cooldownInfo.reason}).
+                </p>
+              </div>
+            </div>
+          )}
           {screen === 'profile' && <Profile profile={profile} setProfile={setProfile} saveProfile={saveProfile} />}
           {screen === 'dashboard' && <Dashboard profile={profile} schemes={schemes} applications={applications} fundsReceived={fundsReceived} apply={apply} checkCriteria={checkCriteria} setScreen={setScreen} openChat={() => setChatOpen(true)} />}
           {screen === 'schemes' && <Schemes schemes={schemes} applications={applications} apply={apply} checkCriteria={checkCriteria} />}

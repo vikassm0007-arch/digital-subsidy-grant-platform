@@ -134,6 +134,9 @@ public class ApiController {
  @PostMapping("/applications/apply") 
  public ApplicationResponse apply(@RequestBody ApplyBody body) {
    Beneficiary b = beneficiary(body.beneficiaryId()); 
+   if (b.getCooldownUntil() != null && b.getCooldownUntil().isAfter(LocalDate.now())) {
+     throw new ResponseStatusException(HttpStatus.FORBIDDEN, "Account is on a 30-day cooldown period until " + b.getCooldownUntil() + " following application rejection.");
+   }
    Scheme s = scheme(body.schemeId()); 
    if (applications.existsByBeneficiaryIdAndSchemeId(b.getId(), s.getId())) {
      throw new ResponseStatusException(HttpStatus.CONFLICT, "You have already applied for this scheme.");
@@ -247,6 +250,14 @@ public class ApiController {
         .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Application not found"));
     a.setStatus(ApplicationStatus.REJECTED);
     a = applications.save(a);
+
+    Beneficiary b = a.getBeneficiary();
+    if (b != null) {
+      b.setCooldownUntil(LocalDate.now().plusDays(30));
+      b.setCooldownReason(body.reason() != null && !body.reason().trim().isEmpty() ? body.reason() : "Application rejected by officer review");
+      beneficiaries.save(b);
+    }
+
     return OfficerApplicationResponse.of(a, stages.findByApplicationIdOrderByStageNumber(a.getId()));
   }
 
@@ -298,6 +309,11 @@ public class ApiController {
   public Map<String, Object> resetDemo() {
     stages.deleteAll();
     applications.deleteAll();
+    for (Beneficiary b : beneficiaries.findAll()) {
+      b.setCooldownUntil(null);
+      b.setCooldownReason(null);
+      beneficiaries.save(b);
+    }
     return Map.of("message", "Demo database reset to zero applications", "status", "SUCCESS");
   }
 
@@ -322,12 +338,12 @@ public class ApiController {
   }
 
   record LoginBody(@NotBlank String identifier) {} 
-  record LoginResponse(Long id, String name, String email, String mobile, String aadhaarNo, String category, BigDecimal annualIncome, String district, String state, String bankAccount, String ifscCode) {
+  record LoginResponse(Long id, String name, String email, String mobile, String aadhaarNo, String category, BigDecimal annualIncome, String district, String state, String bankAccount, String ifscCode, LocalDate cooldownUntil, String cooldownReason) {
     static LoginResponse of(Beneficiary b) {
       return new LoginResponse(
         b.getId(), b.getName(), b.getEmail(), b.getMobile(), b.getAadhaarNo(),
         b.getCategory(), b.getAnnualIncome(), b.getDistrict(), b.getState(),
-        b.getBankAccount(), b.getIfscCode()
+        b.getBankAccount(), b.getIfscCode(), b.getCooldownUntil(), b.getCooldownReason()
       );
     }
   } 
